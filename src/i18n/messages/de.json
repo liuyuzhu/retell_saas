@@ -82,6 +82,7 @@
     "createAgentDesc": "Neuen KI-Sprachagenten konfigurieren",
     "agentName": "Agentenname",
     "voiceId": "Stimmen-ID",
+    "voiceIdDesc": "Leer lassen für Standardstimme",
     "llmModel": "LLM-Modell",
     "temperature": "Temperatur",
     "systemPrompt": "System-Prompt",
@@ -95,7 +96,11 @@
     "editAgent": "Agent bearbeiten",
     "editAgentDesc": "Agentenkonfiguration aktualisieren",
     "deleteConfirm": "Agent löschen",
-    "deleteConfirmDesc": "Sind Sie sicher, dass Sie diesen Agenten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+    "deleteConfirmDesc": "Sind Sie sicher, dass Sie diesen Agenten löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "agentNameRequired": "Agentenname ist erforderlich",
+    "noLlmConfig": "Keine LLM-Konfiguration verfügbar",
+    "noLlmConfigDesc": "Bitte erstellen Sie zuerst eine LLM-Konfiguration oder stellen Sie sicher, dass bestehende Agenten LLM-IDs haben",
+    "selectVoice": "Stimme auswählen"
   },
   "calls": {
     "title": "Anrufe",

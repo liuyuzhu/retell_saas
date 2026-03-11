@@ -82,6 +82,7 @@
     "createAgentDesc": "配置新的AI语音代理",
     "agentName": "代理名称",
     "voiceId": "语音ID",
+    "voiceIdDesc": "留空将使用默认语音",
     "llmModel": "大语言模型",
     "temperature": "温度",
     "systemPrompt": "系统提示词",
@@ -95,7 +96,11 @@
     "editAgent": "编辑代理",
     "editAgentDesc": "更新代理配置",
     "deleteConfirm": "删除代理",
-    "deleteConfirmDesc": "确定要删除此代理吗？此操作无法撤销。"
+    "deleteConfirmDesc": "确定要删除此代理吗？此操作无法撤销。",
+    "agentNameRequired": "代理名称为必填项",
+    "noLlmConfig": "无可用 LLM 配置",
+    "noLlmConfigDesc": "请先创建 LLM 配置或确保现有代理有 LLM ID",
+    "selectVoice": "选择语音"
   },
   "calls": {
     "title": "通话管理",

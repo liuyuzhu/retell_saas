@@ -60,6 +60,9 @@ export interface Agent {
 
 export interface ResponseEngine {
   type: 'retell-llm' | 'bring-your-own-llm' | 'llm-webhook';
+  llm_id?: string; // Required for retell-llm type
+  llm_websocket_url?: string; // Required for bring-your-own-llm type
+  llm_webhook_url?: string; // For llm-webhook type
   llm_url?: string;
   model?: string;
   temperature?: number;

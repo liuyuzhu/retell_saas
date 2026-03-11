@@ -82,6 +82,7 @@
     "createAgentDesc": "Configura un nuovo agente vocale IA",
     "agentName": "Nome agente",
     "voiceId": "ID voce",
+    "voiceIdDesc": "Lascia vuoto per usare voce predefinita",
     "llmModel": "Modello LLM",
     "temperature": "Temperatura",
     "systemPrompt": "Prompt di sistema",
@@ -95,7 +96,11 @@
     "editAgent": "Modifica agente",
     "editAgentDesc": "Aggiorna configurazione agente",
     "deleteConfirm": "Elimina agente",
-    "deleteConfirmDesc": "Sei sicuro di voler eliminare questo agente? Questa azione non può essere annullata."
+    "deleteConfirmDesc": "Sei sicuro di voler eliminare questo agente? Questa azione non può essere annullata.",
+    "agentNameRequired": "Il nome dell'agente è obbligatorio",
+    "noLlmConfig": "Nessuna configurazione LLM disponibile",
+    "noLlmConfigDesc": "Si prega di creare prima una configurazione LLM o assicurarsi che gli agenti esistenti abbiano ID LLM",
+    "selectVoice": "Seleziona voce"
   },
   "calls": {
     "title": "Chiamate",

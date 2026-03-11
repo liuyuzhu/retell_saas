@@ -82,6 +82,7 @@
     "createAgentDesc": "تكوين وكيل صوت ذكي جديد",
     "agentName": "اسم الوكيل",
     "voiceId": "معرف الصوت",
+    "voiceIdDesc": "اتركه فارغاً لاستخدام الصوت الافتراضي",
     "llmModel": "نموذج اللغة الكبير",
     "temperature": "درجة الحرارة",
     "systemPrompt": "موجه النظام",
@@ -95,7 +96,11 @@
     "editAgent": "تعديل الوكيل",
     "editAgentDesc": "تحديث تكوين الوكيل",
     "deleteConfirm": "حذف الوكيل",
-    "deleteConfirmDesc": "هل أنت متأكد أنك تريد حذف هذا الوكيل؟ لا يمكن التراجع عن هذا الإجراء."
+    "deleteConfirmDesc": "هل أنت متأكد أنك تريد حذف هذا الوكيل؟ لا يمكن التراجع عن هذا الإجراء.",
+    "agentNameRequired": "اسم الوكيل مطلوب",
+    "noLlmConfig": "لا يتوفر تكوين LLM",
+    "noLlmConfigDesc": "يرجى إنشاء تكوين LLM أولاً أو التأكد من أن الوكلاء الحاليين لديهم معرفات LLM",
+    "selectVoice": "اختر صوتاً"
   },
   "calls": {
     "title": "المكالمات",

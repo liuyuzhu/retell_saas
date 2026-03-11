@@ -82,6 +82,7 @@
     "createAgentDesc": "Configure a new AI voice agent",
     "agentName": "Agent Name",
     "voiceId": "Voice ID",
+    "voiceIdDesc": "Leave empty to use default voice",
     "llmModel": "LLM Model",
     "temperature": "Temperature",
     "systemPrompt": "System Prompt",
@@ -95,7 +96,11 @@
     "editAgent": "Edit Agent",
     "editAgentDesc": "Update agent configuration",
     "deleteConfirm": "Delete Agent",
-    "deleteConfirmDesc": "Are you sure you want to delete this agent? This action cannot be undone."
+    "deleteConfirmDesc": "Are you sure you want to delete this agent? This action cannot be undone.",
+    "agentNameRequired": "Agent name is required",
+    "noLlmConfig": "No LLM Configuration Available",
+    "noLlmConfigDesc": "Please create an LLM configuration first or ensure existing agents have LLM IDs",
+    "selectVoice": "Select Voice"
   },
   "calls": {
     "title": "Calls",

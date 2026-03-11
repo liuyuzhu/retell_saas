@@ -30,32 +30,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Bot, Plus, Trash2, Edit, RefreshCw } from "lucide-react";
+import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Agent, CreateAgentRequest, UpdateAgentRequest } from "@/lib/retell-types";
+import { Agent, Voice } from "@/lib/retell-types";
 
 interface AgentsPageProps {
   params: Promise<{ locale: string }>;
 }
 
+interface AgentFormData {
+  agent_name: string;
+  voice_id: string;
+  llm_model: string;
+  llm_temperature: number;
+  llm_system_prompt: string;
+  enable_backchannel: boolean;
+  voicemail_detection_enabled: boolean;
+  emotional_authenticity: number;
+  interrupt_sensitivity: number;
+  speed: number;
+}
+
 export default function AgentsPage({ params }: AgentsPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [voicesLoading, setVoicesLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [formData, setFormData] = useState<CreateAgentRequest>({
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState<AgentFormData>({
     agent_name: "",
     voice_id: "",
     llm_model: "gpt-4o",
     llm_temperature: 0.7,
-    llm_system_prompt: "",
-    response_engine: {
-      type: "retell-llm",
-    },
+    llm_system_prompt: "You are a helpful AI assistant.",
     enable_backchannel: false,
     voicemail_detection_enabled: true,
     emotional_authenticity: 0.5,
@@ -84,16 +98,72 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     }
   };
 
+  const fetchVoices = async () => {
+    setVoicesLoading(true);
+    try {
+      const res = await fetch("/api/voices");
+      const data = await res.json();
+      setVoices(data.data || []);
+    } catch (error) {
+      console.error("Error fetching voices:", error);
+    } finally {
+      setVoicesLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAgents();
   }, []);
 
+  // Fetch voices when create dialog opens
+  useEffect(() => {
+    if (createDialogOpen && voices.length === 0) {
+      fetchVoices();
+    }
+  }, [createDialogOpen, voices.length]);
+
+  // Get a valid llm_id from existing agents
+  const getDefaultLlmId = () => {
+    for (const agent of agents) {
+      if (agent.response_engine?.llm_id) {
+        return agent.response_engine.llm_id;
+      }
+    }
+    return null;
+  };
+
   const handleCreate = async () => {
+    if (!formData.agent_name) {
+      toast.error(t("agentNameRequired"));
+      return;
+    }
+
+    const llmId = getDefaultLlmId();
+    if (!llmId) {
+      toast.error(t("noLlmConfig"));
+      return;
+    }
+
+    setSubmitting(true);
     try {
+      const requestBody: Record<string, unknown> = {
+        agent_name: formData.agent_name,
+        voice_id: formData.voice_id || voices[0]?.voice_id || "cartesia-Cleo",
+        enable_backchannel: formData.enable_backchannel,
+        voicemail_detection_enabled: formData.voicemail_detection_enabled,
+        emotional_authenticity: formData.emotional_authenticity,
+        interrupt_sensitivity: formData.interrupt_sensitivity,
+        speed: formData.speed,
+        response_engine: {
+          type: "retell-llm",
+          llm_id: llmId
+        }
+      };
+
       const res = await fetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       });
       
       if (!res.ok) {
@@ -108,19 +178,30 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     } catch (error) {
       console.error("Error creating agent:", error);
       toast.error(error instanceof Error ? error.message : tCommon("error"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleUpdate = async () => {
     if (!selectedAgent) return;
     
+    setSubmitting(true);
     try {
-      const updateData: UpdateAgentRequest = { ...formData };
+      const requestBody: Record<string, unknown> = {};
+      
+      if (formData.agent_name) requestBody.agent_name = formData.agent_name;
+      if (formData.voice_id) requestBody.voice_id = formData.voice_id;
+      requestBody.enable_backchannel = formData.enable_backchannel;
+      requestBody.voicemail_detection_enabled = formData.voicemail_detection_enabled;
+      if (formData.emotional_authenticity !== undefined) requestBody.emotional_authenticity = formData.emotional_authenticity;
+      if (formData.interrupt_sensitivity !== undefined) requestBody.interrupt_sensitivity = formData.interrupt_sensitivity;
+      if (formData.speed !== undefined) requestBody.speed = formData.speed;
       
       const res = await fetch(`/api/agents/${selectedAgent.agent_id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(requestBody),
       });
       
       if (!res.ok) {
@@ -135,6 +216,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     } catch (error) {
       console.error("Error updating agent:", error);
       toast.error(error instanceof Error ? error.message : tCommon("error"));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -163,10 +246,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       voice_id: "",
       llm_model: "gpt-4o",
       llm_temperature: 0.7,
-      llm_system_prompt: "",
-      response_engine: {
-        type: "retell-llm",
-      },
+      llm_system_prompt: "You are a helpful AI assistant.",
       enable_backchannel: false,
       voicemail_detection_enabled: true,
       emotional_authenticity: 0.5,
@@ -183,7 +263,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       llm_model: agent.llm_model || "gpt-4o",
       llm_temperature: agent.llm_temperature || 0.7,
       llm_system_prompt: agent.llm_system_prompt || "",
-      response_engine: agent.response_engine || { type: "retell-llm" },
       enable_backchannel: agent.enable_backchannel || false,
       voicemail_detection_enabled: agent.voicemail_detection_enabled ?? true,
       emotional_authenticity: agent.emotional_authenticity || 0.5,
@@ -192,6 +271,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     });
     setEditDialogOpen(true);
   };
+
+  const defaultLlmId = getDefaultLlmId();
 
   return (
     <DashboardLayout locale={locale}>
@@ -218,13 +299,32 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                   <DialogTitle>{t("createAgent")}</DialogTitle>
                   <DialogDescription>{t("createAgentDesc")}</DialogDescription>
                 </DialogHeader>
-                <AgentForm formData={formData} setFormData={setFormData} t={t} />
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    {tCommon("cancel")}
-                  </Button>
-                  <Button onClick={handleCreate}>{tCommon("create")}</Button>
-                </DialogFooter>
+                {!defaultLlmId ? (
+                  <div className="py-4 text-center text-muted-foreground">
+                    <p>{t("noLlmConfig")}</p>
+                    <p className="text-sm mt-2">{t("noLlmConfigDesc")}</p>
+                  </div>
+                ) : (
+                  <>
+                    <AgentForm 
+                      formData={formData} 
+                      setFormData={setFormData} 
+                      t={t} 
+                      tCommon={tCommon}
+                      voices={voices}
+                      voicesLoading={voicesLoading}
+                    />
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                        {tCommon("cancel")}
+                      </Button>
+                      <Button onClick={handleCreate} disabled={submitting}>
+                        {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        {tCommon("create")}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
           </div>
@@ -313,12 +413,22 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               <DialogTitle>{t("editAgent")}</DialogTitle>
               <DialogDescription>{t("editAgentDesc")}</DialogDescription>
             </DialogHeader>
-            <AgentForm formData={formData} setFormData={setFormData} t={t} />
+            <AgentForm 
+              formData={formData} 
+              setFormData={setFormData} 
+              t={t} 
+              tCommon={tCommon}
+              voices={voices}
+              voicesLoading={voicesLoading}
+            />
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                 {tCommon("cancel")}
               </Button>
-              <Button onClick={handleUpdate}>{tCommon("save")}</Button>
+              <Button onClick={handleUpdate} disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {tCommon("save")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -332,15 +442,21 @@ function AgentForm({
   formData,
   setFormData,
   t,
+  tCommon,
+  voices,
+  voicesLoading,
 }: {
-  formData: CreateAgentRequest;
-  setFormData: React.Dispatch<React.SetStateAction<CreateAgentRequest>>;
+  formData: AgentFormData;
+  setFormData: React.Dispatch<React.SetStateAction<AgentFormData>>;
   t: (key: string) => string;
+  tCommon: (key: string) => string;
+  voices: Voice[];
+  voicesLoading: boolean;
 }) {
   return (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
-        <Label htmlFor="agent_name">{t("agentName")}</Label>
+        <Label htmlFor="agent_name">{t("agentName")} *</Label>
         <Input
           id="agent_name"
           placeholder="My AI Agent"
@@ -351,80 +467,36 @@ function AgentForm({
       
       <div className="grid gap-2">
         <Label htmlFor="voice_id">{t("voiceId")}</Label>
-        <Input
-          id="voice_id"
-          placeholder="elevenlabs_xxx"
+        <Select
           value={formData.voice_id}
-          onChange={(e) => setFormData({ ...formData, voice_id: e.target.value })}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="llm_model">{t("llmModel")}</Label>
-        <Select
-          value={formData.llm_model}
-          onValueChange={(value) => setFormData({ ...formData, llm_model: value })}
+          onValueChange={(value) => setFormData({ ...formData, voice_id: value })}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select model" />
+            <SelectValue placeholder={voicesLoading ? tCommon("loading") : t("selectVoice")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-            <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-            <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-            <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
+            <ScrollArea className="h-[200px]">
+              {voicesLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              ) : (
+                voices.map((voice) => (
+                  <SelectItem key={voice.voice_id} value={voice.voice_id}>
+                    {voice.voice_name} ({voice.provider})
+                  </SelectItem>
+                ))
+              )}
+            </ScrollArea>
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="grid gap-2">
-        <Label>{t("temperature")}: {formData.llm_temperature}</Label>
-        <Slider
-          value={[formData.llm_temperature || 0.7]}
-          onValueChange={([value]) => setFormData({ ...formData, llm_temperature: value })}
-          min={0}
-          max={2}
-          step={0.1}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="system_prompt">{t("systemPrompt")}</Label>
-        <Textarea
-          id="system_prompt"
-          placeholder="You are a helpful AI assistant..."
-          value={formData.llm_system_prompt}
-          onChange={(e) => setFormData({ ...formData, llm_system_prompt: e.target.value })}
-          rows={4}
-        />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="response_engine">{t("responseEngineType")}</Label>
-        <Select
-          value={formData.response_engine?.type}
-          onValueChange={(value) =>
-            setFormData({
-              ...formData,
-              response_engine: { type: value as "retell-llm" | "bring-your-own-llm" | "llm-webhook" },
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="retell-llm">Retell LLM</SelectItem>
-            <SelectItem value="bring-your-own-llm">Bring Your Own LLM</SelectItem>
-            <SelectItem value="llm-webhook">LLM Webhook</SelectItem>
-          </SelectContent>
-        </Select>
+        <p className="text-sm text-muted-foreground">{t("voiceIdDesc")}</p>
       </div>
 
       <div className="grid gap-2">
         <Label>{t("emotionalAuthenticity")}: {formData.emotional_authenticity}</Label>
         <Slider
-          value={[formData.emotional_authenticity || 0.5]}
+          value={[formData.emotional_authenticity]}
           onValueChange={([value]) => setFormData({ ...formData, emotional_authenticity: value })}
           min={0}
           max={1}
@@ -435,7 +507,7 @@ function AgentForm({
       <div className="grid gap-2">
         <Label>{t("interruptSensitivity")}: {formData.interrupt_sensitivity}</Label>
         <Slider
-          value={[formData.interrupt_sensitivity || 0.5]}
+          value={[formData.interrupt_sensitivity]}
           onValueChange={([value]) => setFormData({ ...formData, interrupt_sensitivity: value })}
           min={0}
           max={1}
@@ -446,7 +518,7 @@ function AgentForm({
       <div className="grid gap-2">
         <Label>{t("speed")}: {formData.speed}x</Label>
         <Slider
-          value={[formData.speed || 1]}
+          value={[formData.speed]}
           onValueChange={([value]) => setFormData({ ...formData, speed: value })}
           min={0.5}
           max={2}

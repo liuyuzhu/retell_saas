@@ -82,6 +82,7 @@
     "createAgentDesc": "新しいAI音声エージェントを設定",
     "agentName": "エージェント名",
     "voiceId": "音声ID",
+    "voiceIdDesc": "デフォルト音声を使用するには空欄のまま",
     "llmModel": "LLMモデル",
     "temperature": "温度",
     "systemPrompt": "システムプロンプト",
@@ -95,7 +96,11 @@
     "editAgent": "エージェントを編集",
     "editAgentDesc": "エージェントの設定を更新",
     "deleteConfirm": "エージェントを削除",
-    "deleteConfirmDesc": "本当にこのエージェントを削除しますか？この操作は取り消せません。"
+    "deleteConfirmDesc": "本当にこのエージェントを削除しますか？この操作は取り消せません。",
+    "agentNameRequired": "エージェント名は必須です",
+    "noLlmConfig": "LLM設定がありません",
+    "noLlmConfigDesc": "先にLLM設定を作成するか、既存のエージェントにLLM IDがあることを確認してください",
+    "selectVoice": "音声を選択"
   },
   "calls": {
     "title": "通話",
