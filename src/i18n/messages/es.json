@@ -119,15 +119,23 @@
     "webCallDesc": "网络通话允许您将AI语音直接嵌入到您的Web应用中。"
   },
   "voices": {
-    "title": "语音库",
-    "description": "AI代理可用的语音",
-    "availableVoices": "可用语音",
-    "availableVoicesDesc": "浏览米格AI所有可用语音",
-    "listenSample": "试听样本",
-    "language": "语言",
-    "gender": "性别",
-    "accent": "口音",
-    "provider": "提供商"
+    "title": "Voces",
+    "description": "Voces disponibles para agentes de IA",
+    "availableVoices": "Voces Disponibles",
+    "availableVoicesDesc": "Explorar todas las voces disponibles de Mige AI",
+    "listenSample": "Escuchar Muestra",
+    "language": "Idioma",
+    "gender": "Género",
+    "accent": "Acento",
+    "provider": "Proveedor",
+    "preview": "Vista Previa",
+    "pause": "Pausar",
+    "stopPlaying": "Detener Reproducción",
+    "nowPlaying": "Reproduciendo",
+    "noPreview": "Sin vista previa disponible",
+    "playFailed": "Error al reproducir audio",
+    "openInNewTab": "Abrir en nueva pestaña",
+    "recommended": "Recomendado"
   },
   "conversations": {
     "title": "对话记录",

@@ -127,7 +127,15 @@
     "language": "Langue",
     "gender": "Genre",
     "accent": "Accent",
-    "provider": "Fournisseur"
+    "provider": "Fournisseur",
+    "preview": "Aperçu",
+    "pause": "Pause",
+    "stopPlaying": "Arrêter la lecture",
+    "nowPlaying": "En cours de lecture",
+    "noPreview": "Aperçu non disponible",
+    "playFailed": "Échec de la lecture audio",
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "recommended": "Recommandé"
   },
   "conversations": {
     "title": "Conversations",

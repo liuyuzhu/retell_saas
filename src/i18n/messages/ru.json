@@ -127,7 +127,15 @@
     "language": "Язык",
     "gender": "Пол",
     "accent": "Акцент",
-    "provider": "Провайдер"
+    "provider": "Провайдер",
+    "preview": "Предпросмотр",
+    "pause": "Пауза",
+    "stopPlaying": "Остановить воспроизведение",
+    "nowPlaying": "Сейчас воспроизводится",
+    "noPreview": "Предпросмотр недоступен",
+    "playFailed": "Ошибка воспроизведения аудио",
+    "openInNewTab": "Открыть в новой вкладке",
+    "recommended": "Рекомендуется"
   },
   "conversations": {
     "title": "Разговоры",

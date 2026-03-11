@@ -127,7 +127,15 @@
     "language": "भाषा",
     "gender": "लिंग",
     "accent": "उच्चारण",
-    "provider": "प्रदाता"
+    "provider": "प्रदाता",
+    "preview": "पूर्वावलोकन",
+    "pause": "रोकें",
+    "stopPlaying": "बंद करें",
+    "nowPlaying": "अभी चल रहा है",
+    "noPreview": "पूर्वावलोकन उपलब्ध नहीं है",
+    "playFailed": "ऑडियो चलाने में विफल",
+    "openInNewTab": "नए टैब में खोलें",
+    "recommended": "अनुशंसित"
   },
   "conversations": {
     "title": "वार्तालाप",

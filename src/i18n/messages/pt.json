@@ -127,7 +127,15 @@
     "language": "Idioma",
     "gender": "Gênero",
     "accent": "Sotaque",
-    "provider": "Provedor"
+    "provider": "Provedor",
+    "preview": "Pré-visualizar",
+    "pause": "Pausar",
+    "stopPlaying": "Parar Reprodução",
+    "nowPlaying": "Reproduzindo Agora",
+    "noPreview": "Pré-visualização não disponível",
+    "playFailed": "Falha ao reproduzir áudio",
+    "openInNewTab": "Abrir em nova aba",
+    "recommended": "Recomendado"
   },
   "conversations": {
     "title": "Conversas",

@@ -127,7 +127,15 @@
     "language": "اللغة",
     "gender": "الجنس",
     "accent": "اللكنة",
-    "provider": "المزود"
+    "provider": "المزود",
+    "preview": "معاينة",
+    "pause": "إيقاف مؤقت",
+    "stopPlaying": "إيقاف التشغيل",
+    "nowPlaying": "يتم التشغيل الآن",
+    "noPreview": "لا توجد معاينة متاحة",
+    "playFailed": "فشل تشغيل الصوت",
+    "openInNewTab": "فتح في علامة تبويب جديدة",
+    "recommended": "موصى به"
   },
   "conversations": {
     "title": "المحادثات",

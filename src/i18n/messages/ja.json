@@ -127,7 +127,15 @@
     "language": "言語",
     "gender": "性別",
     "accent": "アクセント",
-    "provider": "プロバイダー"
+    "provider": "プロバイダー",
+    "preview": "プレビュー",
+    "pause": "一時停止",
+    "stopPlaying": "再生を停止",
+    "nowPlaying": "再生中",
+    "noPreview": "プレビューはありません",
+    "playFailed": "音声の再生に失敗しました",
+    "openInNewTab": "新しいタブで開く",
+    "recommended": "おすすめ"
   },
   "conversations": {
     "title": "会話",

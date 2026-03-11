@@ -127,7 +127,15 @@
     "language": "Language",
     "gender": "Gender",
     "accent": "Accent",
-    "provider": "Provider"
+    "provider": "Provider",
+    "preview": "Preview",
+    "pause": "Pause",
+    "stopPlaying": "Stop Playing",
+    "nowPlaying": "Now Playing",
+    "noPreview": "No preview available",
+    "playFailed": "Failed to play audio",
+    "openInNewTab": "Open in new tab",
+    "recommended": "Recommended"
   },
   "conversations": {
     "title": "Conversations",

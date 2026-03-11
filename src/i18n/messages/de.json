@@ -127,7 +127,15 @@
     "language": "Sprache",
     "gender": "Geschlecht",
     "accent": "Akzent",
-    "provider": "Anbieter"
+    "provider": "Anbieter",
+    "preview": "Vorschau",
+    "pause": "Pause",
+    "stopPlaying": "Wiedergabe stoppen",
+    "nowPlaying": "Jetzt läuft",
+    "noPreview": "Keine Vorschau verfügbar",
+    "playFailed": "Audio-Wiedergabe fehlgeschlagen",
+    "openInNewTab": "In neuem Tab öffnen",
+    "recommended": "Empfohlen"
   },
   "conversations": {
     "title": "Gespräche",

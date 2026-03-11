@@ -187,6 +187,11 @@ export interface Voice {
   age?: string;
   provider?: string;
   sample_audio_url?: string;
+  preview_audio_url?: string;
+  avatar_url?: string;
+  recommended?: boolean;
+  voice_type?: string;
+  standard_voice_type?: string;
 }
 
 // ==================== Conversations ====================

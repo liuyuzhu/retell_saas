@@ -127,7 +127,15 @@
     "language": "语言",
     "gender": "性别",
     "accent": "口音",
-    "provider": "提供商"
+    "provider": "提供商",
+    "preview": "试听",
+    "pause": "暂停",
+    "stopPlaying": "停止播放",
+    "nowPlaying": "正在播放",
+    "noPreview": "暂无试听音频",
+    "playFailed": "播放失败",
+    "openInNewTab": "在新标签页打开",
+    "recommended": "推荐"
   },
   "conversations": {
     "title": "对话记录",
