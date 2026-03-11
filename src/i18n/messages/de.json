@@ -23,7 +23,8 @@
     "calls": "Anrufe",
     "voices": "Stimmen",
     "conversations": "Gespräche",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "users": "Benutzerverwaltung"
   },
   "dashboard": {
     "title": "Dashboard",

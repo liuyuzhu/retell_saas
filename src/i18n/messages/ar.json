@@ -23,7 +23,8 @@
     "calls": "المكالمات",
     "voices": "الأصوات",
     "conversations": "المحادثات",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "users": "إدارة المستخدمين"
   },
   "dashboard": {
     "title": "لوحة التحكم",

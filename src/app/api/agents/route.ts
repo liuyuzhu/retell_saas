@@ -1,19 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retellClient } from '@/lib/retell-client';
 import { CreateAgentRequest } from '@/lib/retell-types';
+import { getCurrentUser } from '@/lib/auth';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// GET /api/agents - List all agents
+// GET /api/agents - List agents (with data isolation)
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
-    const cursor = searchParams.get('cursor') || undefined;
-    const before = searchParams.get('before') ? parseInt(searchParams.get('before')!) : undefined;
-    const after = searchParams.get('after') ? parseInt(searchParams.get('after')!) : undefined;
-
-    const result = await retellClient.listAgents({ limit, cursor, before, after });
+    const currentUser = await getCurrentUser();
     
-    return NextResponse.json(result);
+    // Not authenticated - return empty list
+    if (!currentUser) {
+      return NextResponse.json({ data: [], has_more: false });
+    }
+
+    const client = getSupabaseClient();
+
+    // Admin can see all agents
+    if (currentUser.role === 'admin') {
+      const searchParams = request.nextUrl.searchParams;
+      const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
+      const cursor = searchParams.get('cursor') || undefined;
+      const before = searchParams.get('before') ? parseInt(searchParams.get('before')!) : undefined;
+      const after = searchParams.get('after') ? parseInt(searchParams.get('after')!) : undefined;
+
+      const result = await retellClient.listAgents({ limit, cursor, before, after });
+      return NextResponse.json(result);
+    }
+
+    // Regular user - only see assigned agents
+    const { data: userAgents } = await client
+      .from('user_agents')
+      .select('agent_id')
+      .eq('user_id', currentUser.userId);
+
+    if (!userAgents || userAgents.length === 0) {
+      return NextResponse.json({ data: [], has_more: false });
+    }
+
+    // Get all agents from Retell API
+    const result = await retellClient.listAgents({});
+    
+    // Filter to only show assigned agents
+    const assignedAgentIds = new Set(userAgents.map(ua => ua.agent_id));
+    const filteredAgents = result.data?.filter(agent => assignedAgentIds.has(agent.agent_id)) || [];
+
+    return NextResponse.json({
+      data: filteredAgents,
+      has_more: false,
+    });
   } catch (error) {
     console.error('Error listing agents:', error);
     return NextResponse.json(
@@ -23,9 +58,19 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/agents - Create a new agent
+// POST /api/agents - Create a new agent (admin only)
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getCurrentUser();
+    
+    // Only admin can create agents
+    if (!currentUser || currentUser.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only administrators can create agents.' },
+        { status: 403 }
+      );
+    }
+
     const body: CreateAgentRequest = await request.json();
     
     const result = await retellClient.createAgent(body);

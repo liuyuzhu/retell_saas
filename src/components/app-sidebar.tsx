@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import {
   LayoutDashboard,
   Settings,
   Sparkles,
+  Users,
+  Shield,
+  LogOut,
 } from "lucide-react";
 
 const sidebarNavItems = [
@@ -52,12 +55,29 @@ const sidebarNavItems = [
   },
 ];
 
-interface AppSidebarProps {
-  locale: string;
+const adminNavItems = [
+  {
+    titleKey: "users",
+    href: "/admin/users",
+    icon: Users,
+  },
+];
+
+interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
 }
 
-export function AppSidebar({ locale }: AppSidebarProps) {
+interface AppSidebarProps {
+  locale: string;
+  user: User;
+}
+
+export function AppSidebar({ locale, user }: AppSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("sidebar");
   const tCommon = useTranslations("common");
 
@@ -74,6 +94,18 @@ export function AppSidebar({ locale }: AppSidebarProps) {
     return pathname.startsWith(fullPath);
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push(`/${locale}/login`);
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const isAdmin = user.role === "admin";
+
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-background">
       <div className="flex h-14 items-center border-b px-4">
@@ -82,6 +114,28 @@ export function AppSidebar({ locale }: AppSidebarProps) {
           <span className="font-bold text-lg">{tCommon("appName")}</span>
         </Link>
       </div>
+      
+      {/* User info */}
+      <div className="px-4 py-3 border-b">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            {isAdmin ? (
+              <Shield className="h-4 w-4 text-primary" />
+            ) : (
+              <span className="text-sm font-medium text-primary">
+                {(user.name || user.email)[0].toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {user.name || user.email.split("@")[0]}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        </div>
+      </div>
+
       <ScrollArea className="flex-1 py-4">
         <nav className="grid gap-1 px-2">
           {sidebarNavItems.map((item) => (
@@ -99,7 +153,36 @@ export function AppSidebar({ locale }: AppSidebarProps) {
             </Link>
           ))}
         </nav>
+
+        {/* Admin section */}
+        {isAdmin && (
+          <>
+            <Separator className="my-4" />
+            <div className="px-4 mb-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                管理
+              </p>
+            </div>
+            <nav className="grid gap-1 px-2">
+              {adminNavItems.map((item) => (
+                <Link key={item.href} href={getHref(item.href)}>
+                  <Button
+                    variant={isActive(item.href) ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start gap-2",
+                      isActive(item.href) && "bg-secondary"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {t(item.titleKey)}
+                  </Button>
+                </Link>
+              ))}
+            </nav>
+          </>
+        )}
       </ScrollArea>
+      
       <div className="p-4 space-y-2">
         <LanguageSwitcher />
         <Separator />
@@ -109,6 +192,14 @@ export function AppSidebar({ locale }: AppSidebarProps) {
             {t("settings")}
           </Button>
         </Link>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          退出登录
+        </Button>
       </div>
     </div>
   );

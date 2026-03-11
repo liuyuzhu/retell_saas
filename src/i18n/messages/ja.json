@@ -23,7 +23,8 @@
     "calls": "通話",
     "voices": "音声",
     "conversations": "会話",
-    "settings": "設定"
+    "settings": "設定",
+    "users": "ユーザー管理"
   },
   "dashboard": {
     "title": "ダッシュボード",

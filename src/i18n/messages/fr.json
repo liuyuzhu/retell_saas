@@ -23,7 +23,8 @@
     "calls": "Appels",
     "voices": "Voix",
     "conversations": "Conversations",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "users": "Gestion des Utilisateurs"
   },
   "dashboard": {
     "title": "Tableau de bord",
