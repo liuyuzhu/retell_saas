@@ -1,21 +1,9 @@
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Retell AI Management Console",
-  description: "Comprehensive management dashboard for Retell AI voice platform",
-};
-
+// This is the root layout wrapper - it should NOT contain html/body tags
+// The actual layout with html/body is in [locale]/layout.tsx
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased font-sans">
-        {children}
-      </body>
-    </html>
-  );
+  return children;
 }

@@ -13,7 +13,8 @@
     "success": "Успешно",
     "error": "Ошибка",
     "confirm": "Подтвердить",
-    "back": "Назад"
+    "back": "Назад",
+    "agentId": "ID Агента"
   },
   "sidebar": {
     "dashboard": "Панель управления",

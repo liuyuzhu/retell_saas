@@ -13,7 +13,8 @@
     "success": "Succès",
     "error": "Erreur",
     "confirm": "Confirmer",
-    "back": "Retour"
+    "back": "Retour",
+    "agentId": "ID de l'Agent"
   },
   "sidebar": {
     "dashboard": "Tableau de bord",

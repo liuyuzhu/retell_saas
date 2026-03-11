@@ -13,7 +13,8 @@
     "success": "نجاح",
     "error": "خطأ",
     "confirm": "تأكيد",
-    "back": "رجوع"
+    "back": "رجوع",
+    "agentId": "معرف الوكيل"
   },
   "sidebar": {
     "dashboard": "لوحة التحكم",

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales, type Locale } from '@/i18n/config';
-import "./globals.css";
+import "../globals.css";
 
 export const metadata: Metadata = {
   title: "米格AI - AI Voice Management Console",
@@ -27,6 +27,9 @@ export default async function LocaleLayout({
   if (!locales.includes(locale as Locale)) {
     notFound();
   }
+
+  // Enable static rendering
+  setRequestLocale(locale);
 
   // Providing all messages to the client
   const messages = await getMessages();

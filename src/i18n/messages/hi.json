@@ -13,7 +13,8 @@
     "success": "सफल",
     "error": "त्रुटि",
     "confirm": "पुष्टि करें",
-    "back": "वापस"
+    "back": "वापस",
+    "agentId": "एजेंट आईडी"
   },
   "sidebar": {
     "dashboard": "डैशबोर्ड",

@@ -13,7 +13,8 @@
     "success": "成功",
     "error": "エラー",
     "confirm": "確認",
-    "back": "戻る"
+    "back": "戻る",
+    "agentId": "エージェントID"
   },
   "sidebar": {
     "dashboard": "ダッシュボード",

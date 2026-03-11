@@ -13,7 +13,8 @@
     "success": "操作成功",
     "error": "操作失败",
     "confirm": "确认",
-    "back": "返回"
+    "back": "返回",
+    "agentId": "代理ID"
   },
   "sidebar": {
     "dashboard": "仪表盘",
