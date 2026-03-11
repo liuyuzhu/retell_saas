@@ -7,8 +7,9 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
 
 interface LoginPageProps {
   params: Promise<{ locale: string }>;
@@ -18,6 +19,8 @@ export default function LoginPage({ params }: LoginPageProps) {
   const router = useRouter();
   const [locale, setLocale] = useState<string>("zh");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
+  const [emailExistsError, setEmailExistsError] = useState<string | null>(null);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -68,6 +71,7 @@ export default function LoginPage({ params }: LoginPageProps) {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailExistsError(null);
     
     if (!registerEmail || !registerPassword) {
       toast.error("请填写邮箱和密码");
@@ -95,6 +99,12 @@ export default function LoginPage({ params }: LoginPageProps) {
       const data = await res.json();
 
       if (!res.ok) {
+        // Check if email already exists
+        if (data.error === "Email already registered") {
+          setEmailExistsError(registerEmail);
+          toast.error("该邮箱已注册，请直接登录");
+          return;
+        }
         throw new Error(data.error || "注册失败");
       }
 
@@ -107,6 +117,14 @@ export default function LoginPage({ params }: LoginPageProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchToLogin = () => {
+    if (emailExistsError) {
+      setLoginEmail(emailExistsError);
+    }
+    setEmailExistsError(null);
+    setActiveTab("login");
   };
 
   return (
@@ -125,7 +143,7 @@ export default function LoginPage({ params }: LoginPageProps) {
 
         {/* Login/Register Card */}
         <Card className="shadow-xl">
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <CardHeader className="pb-0">
               <TabsList className="grid w-full grid-cols-2 h-12">
                 <TabsTrigger value="login" className="text-base">登录</TabsTrigger>
@@ -183,6 +201,25 @@ export default function LoginPage({ params }: LoginPageProps) {
             <TabsContent value="register">
               <form onSubmit={handleRegister}>
                 <CardContent className="space-y-4 pt-4">
+                  {/* Email already exists error */}
+                  {emailExistsError && (
+                    <Alert className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        <p className="font-medium">该邮箱已注册</p>
+                        <p className="text-sm mt-1">请直接使用此邮箱登录</p>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 h-auto mt-2 text-amber-700 dark:text-amber-300"
+                          onClick={switchToLogin}
+                        >
+                          前往登录 <ArrowRight className="h-3 w-3 ml-1" />
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="register-email">邮箱 *</Label>
                     <Input
@@ -190,7 +227,10 @@ export default function LoginPage({ params }: LoginPageProps) {
                       type="email"
                       placeholder="your@email.com"
                       value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      onChange={(e) => {
+                        setRegisterEmail(e.target.value);
+                        setEmailExistsError(null);
+                      }}
                       disabled={loading}
                       className="h-12"
                       autoComplete="email"
@@ -236,7 +276,7 @@ export default function LoginPage({ params }: LoginPageProps) {
                     />
                   </div>
                 </CardContent>
-                <CardFooter className="pt-2">
+                <CardFooter className="flex flex-col gap-3 pt-2">
                   <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                     注册
@@ -247,9 +287,8 @@ export default function LoginPage({ params }: LoginPageProps) {
           </Tabs>
         </Card>
 
-        {/* Terms */}
-        <p className="text-center text-xs md:text-sm text-muted-foreground mt-4 md:mt-6 px-4">
-          注册即表示您同意我们的<a href="#" className="text-primary hover:underline">服务条款</a>和<a href="#" className="text-primary hover:underline">隐私政策</a>
+        <p className="text-center text-sm text-muted-foreground mt-4">
+          注册即表示您同意我们的服务条款和隐私政策
         </p>
       </div>
     </div>
