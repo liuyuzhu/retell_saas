@@ -56,7 +56,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       }
 
       toast.success("登录成功");
-      router.push(`/${locale}/dashboard`);
+      router.push(`/${locale}`);
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
@@ -99,7 +99,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       }
 
       toast.success("注册成功");
-      router.push(`/${locale}/dashboard`);
+      router.push(`/${locale}`);
       router.refresh();
     } catch (error) {
       console.error("Register error:", error);

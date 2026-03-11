@@ -99,7 +99,7 @@ export default function UsersPage({ params }: UsersPageProps) {
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
-          router.push(`/${locale}/dashboard`);
+          router.push(`/${locale}`);
           return;
         }
         throw new Error("获取用户列表失败");
