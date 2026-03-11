@@ -49,6 +49,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
@@ -59,8 +60,9 @@ export default function LoginPage({ params }: LoginPageProps) {
       }
 
       toast.success("登录成功");
-      router.push(`/${locale}`);
-      router.refresh();
+      
+      // Direct redirect - rely on browser to handle cookie
+      window.location.href = `/${locale}`;
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error instanceof Error ? error.message : "登录失败");
@@ -88,6 +90,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({
           email: registerEmail,
           password: registerPassword,
@@ -99,7 +102,6 @@ export default function LoginPage({ params }: LoginPageProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        // Check if email already exists
         if (data.error === "Email already registered") {
           setEmailExistsError(registerEmail);
           toast.error("该邮箱已注册，请直接登录");
@@ -109,8 +111,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       }
 
       toast.success("注册成功");
-      router.push(`/${locale}`);
-      router.refresh();
+      window.location.href = `/${locale}`;
     } catch (error) {
       console.error("Register error:", error);
       toast.error(error instanceof Error ? error.message : "注册失败");

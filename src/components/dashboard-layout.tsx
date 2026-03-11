@@ -26,25 +26,59 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 2;
+
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me");
-        if (!res.ok) {
-          // Not authenticated, redirect to login
-          router.push(`/${locale}/login`);
+        const res = await fetch("/api/auth/me", {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data.user) {
+            setUser(data.user);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // If not ok and we haven't retried too many times
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(checkAuth, 500);
           return;
         }
-        const data = await res.json();
-        setUser(data.user);
+
+        // If still failing after retries
+        if (mounted) {
+          router.push(`/${locale}/login`);
+        }
       } catch (error) {
         console.error("Auth check error:", error);
-        router.push(`/${locale}/login`);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(checkAuth, 500);
+          return;
+        }
+        if (mounted) {
+          router.push(`/${locale}/login`);
+        }
       } finally {
-        setLoading(false);
+        if (mounted && retryCount >= maxRetries) {
+          setLoading(false);
+        }
       }
     };
 
     checkAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [locale, router]);
 
   if (loading) {
@@ -56,7 +90,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   }
 
   if (!user) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   const isAdmin = user.role === "admin";
