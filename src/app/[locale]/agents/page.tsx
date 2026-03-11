@@ -26,16 +26,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2 } from "lucide-react";
+import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2, MoreVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Agent, Voice } from "@/lib/retell-types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AgentsPageProps {
   params: Promise<{ locale: string }>;
@@ -115,14 +120,12 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     fetchAgents();
   }, []);
 
-  // Fetch voices when create dialog opens
   useEffect(() => {
     if (createDialogOpen && voices.length === 0) {
       fetchVoices();
     }
   }, [createDialogOpen, voices.length]);
 
-  // Get a valid llm_id from existing agents
   const getDefaultLlmId = () => {
     for (const agent of agents) {
       if (agent.response_engine?.llm_id) {
@@ -276,22 +279,22 @@ export default function AgentsPage({ params }: AgentsPageProps) {
 
   return (
     <DashboardLayout locale={locale}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-            <p className="text-muted-foreground">{t("description")}</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-sm md:text-base text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchAgents} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              {tCommon("refresh")}
+            <Button variant="outline" size="icon" onClick={fetchAgents} disabled={loading} className="shrink-0">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="flex-1 sm:flex-initial">
                   <Plus className="h-4 w-4 mr-2" />
-                  {t("createAgent")}
+                  <span className="hidden sm:inline">{t("createAgent")}</span>
+                  <span className="sm:hidden">创建</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -314,11 +317,11 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                       voices={voices}
                       voicesLoading={voicesLoading}
                     />
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="w-full sm:w-auto">
                         {tCommon("cancel")}
                       </Button>
-                      <Button onClick={handleCreate} disabled={submitting}>
+                      <Button onClick={handleCreate} disabled={submitting} className="w-full sm:w-auto">
                         {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         {tCommon("create")}
                       </Button>
@@ -331,9 +334,9 @@ export default function AgentsPage({ params }: AgentsPageProps) {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t("allAgents")}</CardTitle>
-            <CardDescription>{t("allAgentsDesc")}</CardDescription>
+          <CardHeader className="pb-2 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">{t("allAgents")}</CardTitle>
+            <CardDescription className="text-sm">{t("allAgentsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -346,31 +349,35 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                 <p>{tCommon("noData")}</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-3">
                 {agents.map((agent) => (
                   <div
                     key={agent.agent_id}
-                    className="flex items-start justify-between rounded-lg border p-4"
+                    className="flex items-start justify-between rounded-lg border p-3 md:p-4"
                   >
-                    <div className="flex items-start gap-4">
-                      <Bot className="h-5 w-5 text-muted-foreground mt-1" />
-                      <div className="space-y-1">
-                        <p className="font-medium">{agent.agent_name || "Unnamed Agent"}</p>
-                        <p className="text-sm text-muted-foreground font-mono">{agent.agent_id}</p>
-                        <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Bot className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="space-y-1 min-w-0">
+                        <p className="font-medium text-sm md:text-base truncate">{agent.agent_name || "Unnamed Agent"}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{agent.agent_id}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
                           {agent.voice_id && (
-                            <Badge variant="outline">{t("voiceId")}: {agent.voice_id}</Badge>
+                            <Badge variant="outline" className="text-xs truncate max-w-[120px]">
+                              {agent.voice_id}
+                            </Badge>
                           )}
                           {agent.llm_model && (
-                            <Badge variant="secondary">{agent.llm_model}</Badge>
+                            <Badge variant="secondary" className="text-xs">{agent.llm_model}</Badge>
                           )}
                           {agent.enable_backchannel && (
-                            <Badge>{t("enableBackchannel")}</Badge>
+                            <Badge className="text-xs">{t("enableBackchannel")}</Badge>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Desktop Actions */}
+                    <div className="hidden md:flex items-center gap-2 shrink-0">
                       <Button variant="outline" size="sm" onClick={() => openEditDialog(agent)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -399,6 +406,30 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
+
+                    {/* Mobile Actions */}
+                    <div className="md:hidden shrink-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(agent)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            编辑
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(agent.agent_id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -421,11 +452,11 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               voices={voices}
               voicesLoading={voicesLoading}
             />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
                 {tCommon("cancel")}
               </Button>
-              <Button onClick={handleUpdate} disabled={submitting}>
+              <Button onClick={handleUpdate} disabled={submitting} className="w-full sm:w-auto">
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {tCommon("save")}
               </Button>
@@ -475,7 +506,7 @@ function AgentForm({
             <SelectValue placeholder={voicesLoading ? tCommon("loading") : t("selectVoice")} />
           </SelectTrigger>
           <SelectContent>
-            <ScrollArea className="h-[200px]">
+            <ScrollArea className="h-[150px]">
               {voicesLoading ? (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -490,11 +521,11 @@ function AgentForm({
             </ScrollArea>
           </SelectContent>
         </Select>
-        <p className="text-sm text-muted-foreground">{t("voiceIdDesc")}</p>
+        <p className="text-xs text-muted-foreground">{t("voiceIdDesc")}</p>
       </div>
 
       <div className="grid gap-2">
-        <Label>{t("emotionalAuthenticity")}: {formData.emotional_authenticity}</Label>
+        <Label className="text-sm">{t("emotionalAuthenticity")}: {formData.emotional_authenticity}</Label>
         <Slider
           value={[formData.emotional_authenticity]}
           onValueChange={([value]) => setFormData({ ...formData, emotional_authenticity: value })}
@@ -505,7 +536,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>{t("interruptSensitivity")}: {formData.interrupt_sensitivity}</Label>
+        <Label className="text-sm">{t("interruptSensitivity")}: {formData.interrupt_sensitivity}</Label>
         <Slider
           value={[formData.interrupt_sensitivity]}
           onValueChange={([value]) => setFormData({ ...formData, interrupt_sensitivity: value })}
@@ -516,7 +547,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>{t("speed")}: {formData.speed}x</Label>
+        <Label className="text-sm">{t("speed")}: {formData.speed}x</Label>
         <Slider
           value={[formData.speed]}
           onValueChange={([value]) => setFormData({ ...formData, speed: value })}
@@ -526,8 +557,8 @@ function AgentForm({
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <Label htmlFor="backchannel">{t("enableBackchannel")}</Label>
+      <div className="flex items-center justify-between py-2">
+        <Label htmlFor="backchannel" className="text-sm">{t("enableBackchannel")}</Label>
         <Switch
           id="backchannel"
           checked={formData.enable_backchannel}
@@ -535,8 +566,8 @@ function AgentForm({
         />
       </div>
 
-      <div className="flex items-center justify-between">
-        <Label htmlFor="voicemail">{t("voicemailDetection")}</Label>
+      <div className="flex items-center justify-between py-2">
+        <Label htmlFor="voicemail" className="text-sm">{t("voicemailDetection")}</Label>
         <Switch
           id="voicemail"
           checked={formData.voicemail_detection_enabled}

@@ -29,9 +29,15 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Users, Plus, Trash2, Edit, RefreshCw, Loader2, Shield, User } from "lucide-react";
+import { Users, Plus, Trash2, Edit, RefreshCw, Loader2, Shield, User, MoreVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface UserItem {
   id: string;
@@ -272,22 +278,22 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   return (
     <DashboardLayout locale={locale}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">用户管理</h1>
-            <p className="text-muted-foreground">管理系统用户和权限分配</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">用户管理</h1>
+            <p className="text-sm md:text-base text-muted-foreground">管理系统用户和权限分配</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchUsers} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              刷新
+            <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading} className="shrink-0">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="flex-1 sm:flex-initial">
                   <Plus className="h-4 w-4 mr-2" />
-                  创建用户
+                  <span className="hidden sm:inline">创建用户</span>
+                  <span className="sm:hidden">创建</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -296,7 +302,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                   <DialogDescription>创建新用户并分配权限</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="email">邮箱 *</Label>
                       <Input
@@ -318,7 +324,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">姓名</Label>
                       <Input
@@ -341,7 +347,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
                   <div className="space-y-2">
                     <Label>分配 Agent</Label>
-                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                    <ScrollArea className="h-[120px] border rounded-md p-2">
                       {agents.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">暂无可用 Agent</p>
                       ) : (
@@ -353,7 +359,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                                 checked={formData.agentIds.includes(agent.agent_id)}
                                 onCheckedChange={() => toggleAgent(agent.agent_id)}
                               />
-                              <Label htmlFor={`agent-${agent.agent_id}`} className="text-sm font-normal cursor-pointer">
+                              <Label htmlFor={`agent-${agent.agent_id}`} className="text-sm font-normal cursor-pointer truncate">
                                 {agent.agent_name || agent.agent_id}
                               </Label>
                             </div>
@@ -365,7 +371,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
                   <div className="space-y-2">
                     <Label>分配电话号码</Label>
-                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                    <ScrollArea className="h-[120px] border rounded-md p-2">
                       {phoneNumbers.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">暂无可用电话号码</p>
                       ) : (
@@ -387,11 +393,11 @@ export default function UsersPage({ params }: UsersPageProps) {
                     </ScrollArea>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="w-full sm:w-auto">
                     取消
                   </Button>
-                  <Button onClick={handleCreate} disabled={submitting}>
+                  <Button onClick={handleCreate} disabled={submitting} className="w-full sm:w-auto">
                     {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     创建
                   </Button>
@@ -402,9 +408,9 @@ export default function UsersPage({ params }: UsersPageProps) {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>所有用户</CardTitle>
-            <CardDescription>系统中的所有用户列表</CardDescription>
+          <CardHeader className="pb-2 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">所有用户</CardTitle>
+            <CardDescription className="text-sm">系统中的所有用户列表</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -417,47 +423,49 @@ export default function UsersPage({ params }: UsersPageProps) {
                 <p>暂无用户</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-3">
                 {users.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-start justify-between rounded-lg border p-4"
+                    className="flex items-start justify-between rounded-lg border p-3 md:p-4"
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       {user.role === "admin" ? (
-                        <Shield className="h-5 w-5 text-indigo-500 mt-1" />
+                        <Shield className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
                       ) : (
-                        <User className="h-5 w-5 text-muted-foreground mt-1" />
+                        <User className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                       )}
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{user.name || "未设置姓名"}</p>
-                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-sm md:text-base">{user.name || "未设置姓名"}</p>
+                          <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
                             {user.role === "admin" ? "管理员" : "用户"}
                           </Badge>
                           {!user.is_active && (
-                            <Badge variant="destructive">已禁用</Badge>
+                            <Badge variant="destructive" className="text-xs">已禁用</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground truncate">{user.email}</p>
                         {user.phone && (
-                          <p className="text-sm text-muted-foreground">手机: {user.phone}</p>
+                          <p className="text-xs text-muted-foreground">手机: {user.phone}</p>
                         )}
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {user.agents?.slice(0, 3).map((agentId) => (
-                            <Badge key={agentId} variant="outline" className="text-xs">
-                              {agentId.slice(0, 12)}...
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {user.agents?.slice(0, 2).map((agentId) => (
+                            <Badge key={agentId} variant="outline" className="text-xs truncate max-w-[100px]">
+                              {agentId.slice(0, 10)}...
                             </Badge>
                           ))}
-                          {user.agents?.length > 3 && (
+                          {user.agents?.length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{user.agents.length - 3} more
+                              +{user.agents.length - 2}
                             </Badge>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Desktop Actions */}
+                    <div className="hidden md:flex items-center gap-2 shrink-0">
                       <Button variant="outline" size="sm" onClick={() => openEditDialog(user)}>
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -488,6 +496,32 @@ export default function UsersPage({ params }: UsersPageProps) {
                         </AlertDialog>
                       )}
                     </div>
+
+                    {/* Mobile Actions */}
+                    <div className="md:hidden shrink-0">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            编辑
+                          </DropdownMenuItem>
+                          {user.role !== "admin" && (
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(user.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              删除
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -503,7 +537,7 @@ export default function UsersPage({ params }: UsersPageProps) {
               <DialogDescription>更新用户信息和权限分配</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>邮箱</Label>
                   <Input value={formData.email} disabled className="bg-muted" />
@@ -518,7 +552,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-phone">手机号</Label>
                   <Input
@@ -536,7 +570,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
               <div className="space-y-2">
                 <Label>分配 Agent</Label>
-                <ScrollArea className="h-[150px] border rounded-md p-2">
+                <ScrollArea className="h-[120px] border rounded-md p-2">
                   {agents.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">暂无可用 Agent</p>
                   ) : (
@@ -548,7 +582,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                             checked={formData.agentIds.includes(agent.agent_id)}
                             onCheckedChange={() => toggleAgent(agent.agent_id)}
                           />
-                          <Label htmlFor={`edit-agent-${agent.agent_id}`} className="text-sm font-normal cursor-pointer">
+                          <Label htmlFor={`edit-agent-${agent.agent_id}`} className="text-sm font-normal cursor-pointer truncate">
                             {agent.agent_name || agent.agent_id}
                           </Label>
                         </div>
@@ -560,7 +594,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
               <div className="space-y-2">
                 <Label>分配电话号码</Label>
-                <ScrollArea className="h-[150px] border rounded-md p-2">
+                <ScrollArea className="h-[120px] border rounded-md p-2">
                   {phoneNumbers.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">暂无可用电话号码</p>
                   ) : (
@@ -582,11 +616,11 @@ export default function UsersPage({ params }: UsersPageProps) {
                 </ScrollArea>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
                 取消
               </Button>
-              <Button onClick={handleUpdate} disabled={submitting}>
+              <Button onClick={handleUpdate} disabled={submitting} className="w-full sm:w-auto">
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 保存
               </Button>

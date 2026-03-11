@@ -135,3 +135,117 @@
 body {
   @apply font-sans;
 }
+
+/* Mobile Safe Area Support for iOS/Android */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Mobile Touch Optimizations */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve touch scrolling */
+  .overflow-auto, .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Mobile Card Styles */
+@media (max-width: 768px) {
+  .card-mobile {
+    @apply rounded-lg shadow-sm;
+  }
+  
+  /* Hide desktop-only elements on mobile */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Mobile table styles - convert to cards */
+  .mobile-card-table {
+    @apply space-y-3;
+  }
+  
+  .mobile-card-table > thead {
+    display: none;
+  }
+  
+  .mobile-card-table > tbody > tr {
+    @apply block bg-card rounded-lg border p-3 mb-2;
+  }
+  
+  .mobile-card-table > tbody > td {
+    @apply block py-1 border-0;
+  }
+  
+  .mobile-card-table > tbody > td::before {
+    @apply font-medium text-muted-foreground mr-2;
+    content: attr(data-label) ": ";
+  }
+}
+
+/* Desktop only styles */
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  h3 {
+    @apply text-lg;
+  }
+}
+
+/* Improved focus states for accessibility */
+@media (pointer: coarse) {
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/* Prevent zoom on input focus on iOS */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Smooth transitions for mobile */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* PWA standalone mode support */
+@media all and (display-mode: standalone) {
+  .safe-area-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 8px);
+  }
+}

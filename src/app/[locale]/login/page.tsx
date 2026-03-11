@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 interface LoginPageProps {
   params: Promise<{ locale: string }>;
@@ -29,9 +29,9 @@ export default function LoginPage({ params }: LoginPageProps) {
   const [registerName, setRegisterName] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
 
-  useState(() => {
+  useEffect(() => {
     params.then((p) => setLocale(p.locale));
-  });
+  }, [params]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,27 +110,32 @@ export default function LoginPage({ params }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 safe-area-top">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        {/* Logo Section */}
+        <div className="text-center mb-6 md:mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg mb-4">
+            <Sparkles className="h-8 w-8 md:h-10 md:w-10 text-white" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             米格AI
           </h1>
-          <p className="text-muted-foreground mt-2">AI语音管理平台</p>
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">AI语音管理平台</p>
         </div>
 
-        <Card>
+        {/* Login/Register Card */}
+        <Card className="shadow-xl">
           <Tabs defaultValue="login" className="w-full">
-            <CardHeader>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登录</TabsTrigger>
-                <TabsTrigger value="register">注册</TabsTrigger>
+            <CardHeader className="pb-0">
+              <TabsList className="grid w-full grid-cols-2 h-12">
+                <TabsTrigger value="login" className="text-base">登录</TabsTrigger>
+                <TabsTrigger value="register" className="text-base">注册</TabsTrigger>
               </TabsList>
             </CardHeader>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">邮箱</Label>
                     <Input
@@ -140,6 +145,8 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="email"
                     />
                   </div>
                   <div className="space-y-2">
@@ -151,12 +158,14 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="current-password"
                     />
                   </div>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <CardFooter className="flex flex-col gap-3 pt-2">
+                  <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                     登录
                   </Button>
                   <Button
@@ -173,7 +182,7 @@ export default function LoginPage({ params }: LoginPageProps) {
 
             <TabsContent value="register">
               <form onSubmit={handleRegister}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="register-email">邮箱 *</Label>
                     <Input
@@ -183,6 +192,8 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="email"
                     />
                   </div>
                   <div className="space-y-2">
@@ -194,6 +205,8 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="new-password"
                     />
                   </div>
                   <div className="space-y-2">
@@ -205,6 +218,8 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={registerName}
                       onChange={(e) => setRegisterName(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -216,12 +231,14 @@ export default function LoginPage({ params }: LoginPageProps) {
                       value={registerPhone}
                       onChange={(e) => setRegisterPhone(e.target.value)}
                       disabled={loading}
+                      className="h-12"
+                      autoComplete="tel"
                     />
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <CardFooter className="pt-2">
+                  <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                     注册
                   </Button>
                 </CardFooter>
@@ -230,8 +247,9 @@ export default function LoginPage({ params }: LoginPageProps) {
           </Tabs>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          注册即表示您同意我们的服务条款和隐私政策
+        {/* Terms */}
+        <p className="text-center text-xs md:text-sm text-muted-foreground mt-4 md:mt-6 px-4">
+          注册即表示您同意我们的<a href="#" className="text-primary hover:underline">服务条款</a>和<a href="#" className="text-primary hover:underline">隐私政策</a>
         </p>
       </div>
     </div>

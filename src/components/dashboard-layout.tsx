@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
+import { MobileNav } from "@/components/mobile-nav";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
 
@@ -57,12 +59,29 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
     return null; // Will redirect in useEffect
   }
 
+  const isAdmin = user.role === "admin";
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <AppSidebar locale={locale} user={user} />
+      {/* Desktop Sidebar - hidden on mobile */}
+      <div className="hidden md:block">
+        <AppSidebar locale={locale} user={user} />
+      </div>
+
+      {/* Mobile Header - shown only on mobile */}
+      <MobileNav locale={locale} user={user} />
+
+      {/* Main Content */}
       <main className="flex-1 overflow-auto bg-muted/30">
-        <div className="container mx-auto p-6">{children}</div>
+        {/* Add padding for mobile header and bottom nav */}
+        <div className="container mx-auto p-4 md:p-6 pt-[4.5rem] md:pt-6 pb-20 md:pb-6">
+          {children}
+        </div>
       </main>
+
+      {/* Mobile Bottom Navigation - shown only on mobile */}
+      <MobileBottomNav locale={locale} isAdmin={isAdmin} />
+
       <Toaster />
     </div>
   );

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Sparkles } from "lucide-react";
 
 interface ForgotPasswordPageProps {
   params: Promise<{ locale: string }>;
@@ -20,9 +20,9 @@ export default function ForgotPasswordPage({ params }: ForgotPasswordPageProps) 
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     params.then((p) => setLocale(p.locale));
-  });
+  }, [params]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,19 +57,23 @@ export default function ForgotPasswordPage({ params }: ForgotPasswordPageProps) 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 safe-area-top">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        {/* Logo Section */}
+        <div className="text-center mb-6 md:mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg mb-4">
+            <Sparkles className="h-8 w-8 md:h-10 md:w-10 text-white" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
             米格AI
           </h1>
-          <p className="text-muted-foreground mt-2">AI语音管理平台</p>
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">AI语音管理平台</p>
         </div>
 
-        <Card>
+        <Card className="shadow-xl">
           <CardHeader>
-            <CardTitle>重置密码</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl">重置密码</CardTitle>
+            <CardDescription className="text-sm">
               输入您的邮箱地址，我们将发送重置密码链接给您
             </CardDescription>
           </CardHeader>
@@ -95,12 +99,14 @@ export default function ForgotPasswordPage({ params }: ForgotPasswordPageProps) 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={loading}
+                    className="h-12"
+                    autoComplete="email"
                   />
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <CardFooter className="flex flex-col gap-3">
+                <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                   发送重置邮件
                 </Button>
               </CardFooter>
