@@ -31,11 +31,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { Bot, Plus, Trash2, Edit, RefreshCw, Settings } from "lucide-react";
+import { Bot, Plus, Trash2, Edit, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Agent, CreateAgentRequest, UpdateAgentRequest } from "@/lib/retell-types";
 
-export default function AgentsPage() {
+interface AgentsPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function AgentsPage({ params }: AgentsPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -57,6 +63,13 @@ export default function AgentsPage() {
     speed: 1.0,
   });
 
+  const t = useTranslations("agents");
+  const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
+
   const fetchAgents = async () => {
     setLoading(true);
     try {
@@ -65,7 +78,7 @@ export default function AgentsPage() {
       setAgents(data.data || []);
     } catch (error) {
       console.error("Error fetching agents:", error);
-      toast.error("Failed to fetch agents");
+      toast.error(tCommon("error"));
     } finally {
       setLoading(false);
     }
@@ -85,16 +98,16 @@ export default function AgentsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to create agent");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Agent created successfully");
+      toast.success(tCommon("success"));
       setCreateDialogOpen(false);
       resetForm();
       fetchAgents();
     } catch (error) {
       console.error("Error creating agent:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create agent");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -112,16 +125,16 @@ export default function AgentsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to update agent");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Agent updated successfully");
+      toast.success(tCommon("success"));
       setEditDialogOpen(false);
       setSelectedAgent(null);
       fetchAgents();
     } catch (error) {
       console.error("Error updating agent:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update agent");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -133,14 +146,14 @@ export default function AgentsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to delete agent");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Agent deleted successfully");
+      toast.success(tCommon("success"));
       fetchAgents();
     } catch (error) {
       console.error("Error deleting agent:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to delete agent");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -181,40 +194,36 @@ export default function AgentsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
-            <p className="text-muted-foreground">
-              Manage your AI voice agents
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchAgents} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {tCommon("refresh")}
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Agent
+                  {t("createAgent")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Create AI Agent</DialogTitle>
-                  <DialogDescription>
-                    Configure a new AI voice agent
-                  </DialogDescription>
+                  <DialogTitle>{t("createAgent")}</DialogTitle>
+                  <DialogDescription>{t("createAgentDesc")}</DialogDescription>
                 </DialogHeader>
-                <AgentForm formData={formData} setFormData={setFormData} />
+                <AgentForm formData={formData} setFormData={setFormData} t={t} />
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
+                    {tCommon("cancel")}
                   </Button>
-                  <Button onClick={handleCreate}>Create</Button>
+                  <Button onClick={handleCreate}>{tCommon("create")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -223,10 +232,8 @@ export default function AgentsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Agents</CardTitle>
-            <CardDescription>
-              A list of all AI voice agents in your account
-            </CardDescription>
+            <CardTitle>{t("allAgents")}</CardTitle>
+            <CardDescription>{t("allAgentsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -236,8 +243,7 @@ export default function AgentsPage() {
             ) : agents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Bot className="h-12 w-12 mb-4" />
-                <p>No agents found</p>
-                <p className="text-sm">Create your first agent to get started</p>
+                <p>{tCommon("noData")}</p>
               </div>
             ) : (
               <div className="grid gap-4">
@@ -253,13 +259,13 @@ export default function AgentsPage() {
                         <p className="text-sm text-muted-foreground font-mono">{agent.agent_id}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {agent.voice_id && (
-                            <Badge variant="outline">Voice: {agent.voice_id}</Badge>
+                            <Badge variant="outline">{t("voiceId")}: {agent.voice_id}</Badge>
                           )}
                           {agent.llm_model && (
                             <Badge variant="secondary">{agent.llm_model}</Badge>
                           )}
                           {agent.enable_backchannel && (
-                            <Badge>Backchannel</Badge>
+                            <Badge>{t("enableBackchannel")}</Badge>
                           )}
                         </div>
                       </div>
@@ -276,19 +282,18 @@ export default function AgentsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Agent</AlertDialogTitle>
+                            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete {agent.agent_name || agent.agent_id}? This action
-                              cannot be undone.
+                              {t("deleteConfirmDesc")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(agent.agent_id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Delete
+                              {tCommon("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -305,17 +310,15 @@ export default function AgentsPage() {
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Agent</DialogTitle>
-              <DialogDescription>
-                Update agent configuration
-              </DialogDescription>
+              <DialogTitle>{t("editAgent")}</DialogTitle>
+              <DialogDescription>{t("editAgentDesc")}</DialogDescription>
             </DialogHeader>
-            <AgentForm formData={formData} setFormData={setFormData} />
+            <AgentForm formData={formData} setFormData={setFormData} t={t} />
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                Cancel
+                {tCommon("cancel")}
               </Button>
-              <Button onClick={handleUpdate}>Save Changes</Button>
+              <Button onClick={handleUpdate}>{tCommon("save")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -328,14 +331,16 @@ export default function AgentsPage() {
 function AgentForm({
   formData,
   setFormData,
+  t,
 }: {
   formData: CreateAgentRequest;
   setFormData: React.Dispatch<React.SetStateAction<CreateAgentRequest>>;
+  t: (key: string) => string;
 }) {
   return (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
-        <Label htmlFor="agent_name">Agent Name</Label>
+        <Label htmlFor="agent_name">{t("agentName")}</Label>
         <Input
           id="agent_name"
           placeholder="My AI Agent"
@@ -345,7 +350,7 @@ function AgentForm({
       </div>
       
       <div className="grid gap-2">
-        <Label htmlFor="voice_id">Voice ID</Label>
+        <Label htmlFor="voice_id">{t("voiceId")}</Label>
         <Input
           id="voice_id"
           placeholder="elevenlabs_xxx"
@@ -355,7 +360,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="llm_model">LLM Model</Label>
+        <Label htmlFor="llm_model">{t("llmModel")}</Label>
         <Select
           value={formData.llm_model}
           onValueChange={(value) => setFormData({ ...formData, llm_model: value })}
@@ -373,7 +378,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>Temperature: {formData.llm_temperature}</Label>
+        <Label>{t("temperature")}: {formData.llm_temperature}</Label>
         <Slider
           value={[formData.llm_temperature || 0.7]}
           onValueChange={([value]) => setFormData({ ...formData, llm_temperature: value })}
@@ -384,7 +389,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="system_prompt">System Prompt</Label>
+        <Label htmlFor="system_prompt">{t("systemPrompt")}</Label>
         <Textarea
           id="system_prompt"
           placeholder="You are a helpful AI assistant..."
@@ -395,7 +400,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="response_engine">Response Engine Type</Label>
+        <Label htmlFor="response_engine">{t("responseEngineType")}</Label>
         <Select
           value={formData.response_engine?.type}
           onValueChange={(value) =>
@@ -417,7 +422,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>Emotional Authenticity: {formData.emotional_authenticity}</Label>
+        <Label>{t("emotionalAuthenticity")}: {formData.emotional_authenticity}</Label>
         <Slider
           value={[formData.emotional_authenticity || 0.5]}
           onValueChange={([value]) => setFormData({ ...formData, emotional_authenticity: value })}
@@ -428,7 +433,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>Interrupt Sensitivity: {formData.interrupt_sensitivity}</Label>
+        <Label>{t("interruptSensitivity")}: {formData.interrupt_sensitivity}</Label>
         <Slider
           value={[formData.interrupt_sensitivity || 0.5]}
           onValueChange={([value]) => setFormData({ ...formData, interrupt_sensitivity: value })}
@@ -439,7 +444,7 @@ function AgentForm({
       </div>
 
       <div className="grid gap-2">
-        <Label>Speed: {formData.speed}x</Label>
+        <Label>{t("speed")}: {formData.speed}x</Label>
         <Slider
           value={[formData.speed || 1]}
           onValueChange={([value]) => setFormData({ ...formData, speed: value })}
@@ -450,7 +455,7 @@ function AgentForm({
       </div>
 
       <div className="flex items-center justify-between">
-        <Label htmlFor="backchannel">Enable Backchannel</Label>
+        <Label htmlFor="backchannel">{t("enableBackchannel")}</Label>
         <Switch
           id="backchannel"
           checked={formData.enable_backchannel}
@@ -459,7 +464,7 @@ function AgentForm({
       </div>
 
       <div className="flex items-center justify-between">
-        <Label htmlFor="voicemail">Voicemail Detection</Label>
+        <Label htmlFor="voicemail">{t("voicemailDetection")}</Label>
         <Switch
           id="voicemail"
           checked={formData.voicemail_detection_enabled}

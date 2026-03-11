@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Bot, PhoneCall, MessageSquare, TrendingUp, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface Stats {
   phoneNumbers: number;
@@ -12,7 +13,12 @@ interface Stats {
   conversations: number;
 }
 
-export default function DashboardPage() {
+interface DashboardPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function DashboardPage({ params }: DashboardPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [stats, setStats] = useState<Stats>({
     phoneNumbers: 0,
     agents: 0,
@@ -20,6 +26,15 @@ export default function DashboardPage() {
     conversations: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  const t = useTranslations("dashboard");
+  const tStats = useTranslations("dashboard.stats");
+  const tQuickActions = useTranslations("dashboard.quickActions");
+  const tApiConfig = useTranslations("dashboard.apiConfig");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -56,43 +71,41 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      title: "Phone Numbers",
+      title: tStats("phoneNumbers"),
       value: stats.phoneNumbers,
-      description: "Active phone numbers",
+      description: tStats("phoneNumbersDesc"),
       icon: Phone,
       color: "text-blue-500",
     },
     {
-      title: "Agents",
+      title: tStats("agents"),
       value: stats.agents,
-      description: "AI voice agents",
+      description: tStats("agentsDesc"),
       icon: Bot,
       color: "text-green-500",
     },
     {
-      title: "Calls",
+      title: tStats("calls"),
       value: stats.calls,
-      description: "Total calls made",
+      description: tStats("callsDesc"),
       icon: PhoneCall,
       color: "text-purple-500",
     },
     {
-      title: "Conversations",
+      title: tStats("conversations"),
       value: stats.conversations,
-      description: "Conversation records",
+      description: tStats("conversationsDesc"),
       icon: MessageSquare,
       color: "text-orange-500",
     },
   ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your Retell AI voice platform
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("description")}</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -117,33 +130,31 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Quick Actions
+                {tQuickActions("title")}
               </CardTitle>
-              <CardDescription>
-                Common tasks and operations
-              </CardDescription>
+              <CardDescription>{tQuickActions("description")}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2">
               <a
-                href="/phone-numbers"
+                href={`/${locale}/phone-numbers`}
                 className="flex items-center gap-2 rounded-lg border p-3 hover:bg-muted transition-colors"
               >
                 <Phone className="h-4 w-4 text-blue-500" />
-                <span>Manage Phone Numbers</span>
+                <span>{tQuickActions("managePhoneNumbers")}</span>
               </a>
               <a
-                href="/agents"
+                href={`/${locale}/agents`}
                 className="flex items-center gap-2 rounded-lg border p-3 hover:bg-muted transition-colors"
               >
                 <Bot className="h-4 w-4 text-green-500" />
-                <span>Configure AI Agents</span>
+                <span>{tQuickActions("configureAgents")}</span>
               </a>
               <a
-                href="/calls"
+                href={`/${locale}/calls`}
                 className="flex items-center gap-2 rounded-lg border p-3 hover:bg-muted transition-colors"
               >
                 <PhoneCall className="h-4 w-4 text-purple-500" />
-                <span>Make a Call</span>
+                <span>{tQuickActions("makeCall")}</span>
               </a>
             </CardContent>
           </Card>
@@ -152,25 +163,23 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                API Configuration
+                {tApiConfig("title")}
               </CardTitle>
-              <CardDescription>
-                Retell AI integration settings
-              </CardDescription>
+              <CardDescription>{tApiConfig("description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div>
-                    <p className="font-medium">API Status</p>
+                    <p className="font-medium">{tApiConfig("status")}</p>
                     <p className="text-sm text-muted-foreground">
-                      {loading ? "Checking..." : "Connected"}
+                      {loading ? tApiConfig("checking") : tApiConfig("connected")}
                     </p>
                   </div>
                   <div className={`h-3 w-3 rounded-full ${loading ? "bg-yellow-500" : "bg-green-500"}`} />
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="font-medium">Base URL</p>
+                  <p className="font-medium">{tApiConfig("baseUrl")}</p>
                   <p className="text-sm text-muted-foreground font-mono">
                     https://api.retellai.com
                   </p>

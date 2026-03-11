@@ -30,9 +30,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Call, CreatePhoneCallRequest, CreateWebCallRequest } from "@/lib/retell-types";
 
-export default function CallsPage() {
+interface CallsPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function CallsPage({ params }: CallsPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [calls, setCalls] = useState<Call[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -44,6 +50,13 @@ export default function CallsPage() {
     metadata: {},
   });
 
+  const t = useTranslations("calls");
+  const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
+
   const fetchCalls = async () => {
     setLoading(true);
     try {
@@ -52,7 +65,7 @@ export default function CallsPage() {
       setCalls(data.data || []);
     } catch (error) {
       console.error("Error fetching calls:", error);
-      toast.error("Failed to fetch calls");
+      toast.error(tCommon("error"));
     } finally {
       setLoading(false);
     }
@@ -75,23 +88,16 @@ export default function CallsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to create call");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      const result = await res.json();
-      
-      if (callType === "web") {
-        toast.success("Web call created successfully");
-      } else {
-        toast.success("Phone call initiated successfully");
-      }
-      
+      toast.success(tCommon("success"));
       setCreateDialogOpen(false);
       setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
       fetchCalls();
     } catch (error) {
       console.error("Error creating call:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create call");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -103,14 +109,14 @@ export default function CallsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to delete call");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Call deleted successfully");
+      toast.success(tCommon("success"));
       fetchCalls();
     } catch (error) {
       console.error("Error deleting call:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to delete call");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -138,49 +144,45 @@ export default function CallsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Calls</h1>
-            <p className="text-muted-foreground">
-              Manage and monitor your calls
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchCalls} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {tCommon("refresh")}
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  New Call
+                  {t("newCall")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Create New Call</DialogTitle>
-                  <DialogDescription>
-                    Start a phone call or web call
-                  </DialogDescription>
+                  <DialogTitle>{t("createCall")}</DialogTitle>
+                  <DialogDescription>{t("createCallDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <Tabs value={callType} onValueChange={(v) => setCallType(v as "phone" | "web")}>
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="phone">
                         <Phone className="h-4 w-4 mr-2" />
-                        Phone Call
+                        {t("phoneCall")}
                       </TabsTrigger>
                       <TabsTrigger value="web">
                         <Video className="h-4 w-4 mr-2" />
-                        Web Call
+                        {t("webCall")}
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="phone" className="space-y-4 mt-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="from_number">From Number *</Label>
+                        <Label htmlFor="from_number">{t("fromNumber")} *</Label>
                         <Input
                           id="from_number"
                           placeholder="+1234567890"
@@ -189,7 +191,7 @@ export default function CallsPage() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="to_number">To Number *</Label>
+                        <Label htmlFor="to_number">{t("toNumber")} *</Label>
                         <Input
                           id="to_number"
                           placeholder="+0987654321"
@@ -198,7 +200,7 @@ export default function CallsPage() {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="agent_id_call">Agent ID *</Label>
+                        <Label htmlFor="agent_id_call">{tCommon("agentId")} *</Label>
                         <Input
                           id="agent_id_call"
                           placeholder="agent_xxx"
@@ -209,7 +211,7 @@ export default function CallsPage() {
                     </TabsContent>
                     <TabsContent value="web" className="space-y-4 mt-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="agent_id_web">Agent ID *</Label>
+                        <Label htmlFor="agent_id_web">{tCommon("agentId")} *</Label>
                         <Input
                           id="agent_id_web"
                           placeholder="agent_xxx"
@@ -217,18 +219,16 @@ export default function CallsPage() {
                           onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
                         />
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Web calls allow you to embed voice AI directly into your web application.
-                      </p>
+                      <p className="text-sm text-muted-foreground">{t("webCallDesc")}</p>
                     </TabsContent>
                   </Tabs>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
+                    {tCommon("cancel")}
                   </Button>
                   <Button onClick={handleCreateCall}>
-                    {callType === "phone" ? "Start Call" : "Create Web Call"}
+                    {callType === "phone" ? t("startCall") : t("createWebCall")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -238,10 +238,8 @@ export default function CallsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Calls</CardTitle>
-            <CardDescription>
-              A history of all calls made through Retell AI
-            </CardDescription>
+            <CardTitle>{t("allCalls")}</CardTitle>
+            <CardDescription>{t("allCallsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -251,8 +249,7 @@ export default function CallsPage() {
             ) : calls.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <PhoneCall className="h-12 w-12 mb-4" />
-                <p>No calls found</p>
-                <p className="text-sm">Make your first call to get started</p>
+                <p>{tCommon("noData")}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -271,18 +268,18 @@ export default function CallsPage() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{call.call_id}</p>
                           {getStatusBadge(call.call_status)}
-                          <Badge variant="outline">{call.call_direction || "outbound"}</Badge>
+                          <Badge variant="outline">{call.call_direction || t("outbound")}</Badge>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          {call.from_number && <span>From: {call.from_number}</span>}
-                          {call.to_number && <span>To: {call.to_number}</span>}
+                          {call.from_number && <span>{t("fromNumber")}: {call.from_number}</span>}
+                          {call.to_number && <span>{t("toNumber")}: {call.to_number}</span>}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDate(call.started_at)}
                           </span>
-                          <span>Duration: {formatDuration(call.duration_ms)}</span>
+                          <span>{t("duration")}: {formatDuration(call.duration_ms)}</span>
                         </div>
                         {call.agent_id && (
                           <Badge variant="secondary" className="mt-1">
@@ -307,19 +304,18 @@ export default function CallsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Call</AlertDialogTitle>
+                            <AlertDialogTitle>{tCommon("delete")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete this call record? This action
-                              cannot be undone.
+                              {tCommon("confirm")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDeleteCall(call.call_id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Delete
+                              {tCommon("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

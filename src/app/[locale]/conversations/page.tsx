@@ -19,12 +19,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { MessageSquare, RefreshCw, Trash2, Clock, User, Bot } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Conversation, TranscriptSegment } from "@/lib/retell-types";
 
-export default function ConversationsPage() {
+interface ConversationsPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function ConversationsPage({ params }: ConversationsPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  const t = useTranslations("conversations");
+  const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -34,7 +47,7 @@ export default function ConversationsPage() {
       setConversations(data.data || []);
     } catch (error) {
       console.error("Error fetching conversations:", error);
-      toast.error("Failed to fetch conversations");
+      toast.error(tCommon("error"));
     } finally {
       setLoading(false);
     }
@@ -52,14 +65,14 @@ export default function ConversationsPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to delete conversation");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Conversation deleted successfully");
+      toast.success(tCommon("success"));
       fetchConversations();
     } catch (error) {
       console.error("Error deleting conversation:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to delete conversation");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -83,22 +96,20 @@ export default function ConversationsPage() {
       neutral: "secondary",
       negative: "destructive",
     };
-    return <Badge variant={variants[sentiment] || "outline"}>{sentiment}</Badge>;
+    return <Badge variant={variants[sentiment] || "outline"}>{t(sentiment)}</Badge>;
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Conversations</h1>
-            <p className="text-muted-foreground">
-              View and manage conversation history
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <Button variant="outline" onClick={fetchConversations} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {tCommon("refresh")}
           </Button>
         </div>
 
@@ -106,10 +117,8 @@ export default function ConversationsPage() {
           {/* Conversation List */}
           <Card>
             <CardHeader>
-              <CardTitle>All Conversations</CardTitle>
-              <CardDescription>
-                A history of all conversations with AI agents
-              </CardDescription>
+              <CardTitle>{t("allConversations")}</CardTitle>
+              <CardDescription>{t("allConversationsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -119,8 +128,7 @@ export default function ConversationsPage() {
               ) : conversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mb-4" />
-                  <p>No conversations found</p>
-                  <p className="text-sm">Conversations will appear here after calls are made</p>
+                  <p>{tCommon("noData")}</p>
                 </div>
               ) : (
                 <ScrollArea className="h-[600px] pr-4">
@@ -161,21 +169,20 @@ export default function ConversationsPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                                <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete this conversation? This action
-                                  cannot be undone.
+                                  {t("deleteConfirmDesc")}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
                                     handleDeleteConversation(conversation.conversation_id)
                                   }
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Delete
+                                  {tCommon("delete")}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -197,23 +204,21 @@ export default function ConversationsPage() {
           {/* Conversation Detail */}
           <Card>
             <CardHeader>
-              <CardTitle>Conversation Details</CardTitle>
-              <CardDescription>
-                Transcript and analysis of the selected conversation
-              </CardDescription>
+              <CardTitle>{t("conversationDetails")}</CardTitle>
+              <CardDescription>{t("conversationDetailsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {selectedConversation ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="rounded-lg border p-3">
-                      <p className="text-sm text-muted-foreground">Duration</p>
+                      <p className="text-sm text-muted-foreground">{t("duration")}</p>
                       <p className="font-medium">
                         {formatDuration(selectedConversation.duration_ms)}
                       </p>
                     </div>
                     <div className="rounded-lg border p-3">
-                      <p className="text-sm text-muted-foreground">Sentiment</p>
+                      <p className="text-sm text-muted-foreground">{t("sentiment")}</p>
                       <p className="font-medium">
                         {getSentimentBadge(selectedConversation.sentiment) || "N/A"}
                       </p>
@@ -222,13 +227,13 @@ export default function ConversationsPage() {
 
                   {selectedConversation.call_analysis?.call_summary && (
                     <div className="rounded-lg border p-3">
-                      <p className="text-sm text-muted-foreground mb-2">Summary</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t("summary")}</p>
                       <p className="text-sm">{selectedConversation.call_analysis.call_summary}</p>
                     </div>
                   )}
 
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Transcript</p>
+                    <p className="text-sm text-muted-foreground mb-2">{t("transcript")}</p>
                     <ScrollArea className="h-[400px] rounded-lg border p-4">
                       {selectedConversation.transcript && selectedConversation.transcript.length > 0 ? (
                         <div className="space-y-3">
@@ -237,7 +242,7 @@ export default function ConversationsPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No transcript available</p>
+                        <p className="text-muted-foreground">{t("noTranscript")}</p>
                       )}
                     </ScrollArea>
                   </div>
@@ -245,7 +250,7 @@ export default function ConversationsPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                   <MessageSquare className="h-12 w-12 mb-4" />
-                  <p>Select a conversation to view details</p>
+                  <p>{t("selectConversation")}</p>
                 </div>
               )}
             </CardContent>

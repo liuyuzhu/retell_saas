@@ -30,9 +30,15 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Phone, Plus, Trash2, Edit, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PhoneNumber, CreatePhoneNumberRequest, UpdatePhoneNumberRequest } from "@/lib/retell-types";
 
-export default function PhoneNumbersPage() {
+interface PhoneNumbersPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function PhoneNumbersPage({ params }: PhoneNumbersPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -46,6 +52,13 @@ export default function PhoneNumbersPage() {
     outbound_call_recording_enabled: false,
   });
 
+  const t = useTranslations("phoneNumbers");
+  const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
+
   const fetchPhoneNumbers = async () => {
     setLoading(true);
     try {
@@ -54,7 +67,7 @@ export default function PhoneNumbersPage() {
       setPhoneNumbers(data.data || []);
     } catch (error) {
       console.error("Error fetching phone numbers:", error);
-      toast.error("Failed to fetch phone numbers");
+      toast.error(tCommon("error"));
     } finally {
       setLoading(false);
     }
@@ -74,10 +87,10 @@ export default function PhoneNumbersPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to create phone number");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Phone number created successfully");
+      toast.success(tCommon("success"));
       setCreateDialogOpen(false);
       setFormData({
         phone_number: "",
@@ -89,7 +102,7 @@ export default function PhoneNumbersPage() {
       fetchPhoneNumbers();
     } catch (error) {
       console.error("Error creating phone number:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create phone number");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -112,16 +125,16 @@ export default function PhoneNumbersPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to update phone number");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Phone number updated successfully");
+      toast.success(tCommon("success"));
       setEditDialogOpen(false);
       setSelectedPhone(null);
       fetchPhoneNumbers();
     } catch (error) {
       console.error("Error updating phone number:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update phone number");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -133,14 +146,14 @@ export default function PhoneNumbersPage() {
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to delete phone number");
+        throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success("Phone number deleted successfully");
+      toast.success(tCommon("success"));
       fetchPhoneNumbers();
     } catch (error) {
       console.error("Error deleting phone number:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to delete phone number");
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
     }
   };
 
@@ -157,37 +170,33 @@ export default function PhoneNumbersPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Phone Numbers</h1>
-            <p className="text-muted-foreground">
-              Manage your Retell AI phone numbers
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchPhoneNumbers} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              {tCommon("refresh")}
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Phone Number
+                  {t("addPhoneNumber")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Create Phone Number</DialogTitle>
-                  <DialogDescription>
-                    Add a new phone number to your Retell AI account
-                  </DialogDescription>
+                  <DialogTitle>{t("createPhoneNumber")}</DialogTitle>
+                  <DialogDescription>{t("createPhoneNumberDesc")}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="phone_number">Phone Number *</Label>
+                    <Label htmlFor="phone_number">{t("phoneNumber")} *</Label>
                     <Input
                       id="phone_number"
                       placeholder="+1234567890"
@@ -196,7 +205,7 @@ export default function PhoneNumbersPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="nickname">Nickname</Label>
+                    <Label htmlFor="nickname">{t("nickname")}</Label>
                     <Input
                       id="nickname"
                       placeholder="My Phone Number"
@@ -205,7 +214,7 @@ export default function PhoneNumbersPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="agent_id">Agent ID</Label>
+                    <Label htmlFor="agent_id">{t("agentId")}</Label>
                     <Input
                       id="agent_id"
                       placeholder="agent_xxx"
@@ -214,7 +223,7 @@ export default function PhoneNumbersPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="inbound_recording">Inbound Call Recording</Label>
+                    <Label htmlFor="inbound_recording">{t("inboundRecording")}</Label>
                     <Switch
                       id="inbound_recording"
                       checked={formData.inbound_call_recording_enabled}
@@ -224,7 +233,7 @@ export default function PhoneNumbersPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="outbound_recording">Outbound Call Recording</Label>
+                    <Label htmlFor="outbound_recording">{t("outboundRecording")}</Label>
                     <Switch
                       id="outbound_recording"
                       checked={formData.outbound_call_recording_enabled}
@@ -236,9 +245,9 @@ export default function PhoneNumbersPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                    Cancel
+                    {tCommon("cancel")}
                   </Button>
-                  <Button onClick={handleCreate}>Create</Button>
+                  <Button onClick={handleCreate}>{tCommon("create")}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -247,10 +256,8 @@ export default function PhoneNumbersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Phone Numbers</CardTitle>
-            <CardDescription>
-              A list of all phone numbers in your account
-            </CardDescription>
+            <CardTitle>{t("allPhoneNumbers")}</CardTitle>
+            <CardDescription>{t("allPhoneNumbersDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -260,8 +267,7 @@ export default function PhoneNumbersPage() {
             ) : phoneNumbers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Phone className="h-12 w-12 mb-4" />
-                <p>No phone numbers found</p>
-                <p className="text-sm">Create your first phone number to get started</p>
+                <p>{tCommon("noData")}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -279,7 +285,7 @@ export default function PhoneNumbersPage() {
                         )}
                       </div>
                       {phone.agent_id && (
-                        <Badge variant="secondary">Agent: {phone.agent_id}</Badge>
+                        <Badge variant="secondary">{t("agentId")}: {phone.agent_id}</Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -294,19 +300,18 @@ export default function PhoneNumbersPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Phone Number</AlertDialogTitle>
+                            <AlertDialogTitle>{t("deleteConfirm")}</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete {phone.phone_number}? This action
-                              cannot be undone.
+                              {t("deleteConfirmDesc", { number: phone.phone_number })}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleDelete(phone.phone_number)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
-                              Delete
+                              {tCommon("delete")}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -323,18 +328,16 @@ export default function PhoneNumbersPage() {
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Phone Number</DialogTitle>
-              <DialogDescription>
-                Update phone number settings
-              </DialogDescription>
+              <DialogTitle>{t("editPhoneNumber")}</DialogTitle>
+              <DialogDescription>{t("editPhoneNumberDesc")}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Phone Number</Label>
+                <Label>{t("phoneNumber")}</Label>
                 <p className="font-mono text-sm">{selectedPhone?.phone_number}</p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_nickname">Nickname</Label>
+                <Label htmlFor="edit_nickname">{t("nickname")}</Label>
                 <Input
                   id="edit_nickname"
                   value={formData.nickname}
@@ -342,7 +345,7 @@ export default function PhoneNumbersPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_agent_id">Agent ID</Label>
+                <Label htmlFor="edit_agent_id">{t("agentId")}</Label>
                 <Input
                   id="edit_agent_id"
                   value={formData.agent_id}
@@ -350,7 +353,7 @@ export default function PhoneNumbersPage() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="edit_inbound_recording">Inbound Call Recording</Label>
+                <Label htmlFor="edit_inbound_recording">{t("inboundRecording")}</Label>
                 <Switch
                   id="edit_inbound_recording"
                   checked={formData.inbound_call_recording_enabled}
@@ -360,7 +363,7 @@ export default function PhoneNumbersPage() {
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="edit_outbound_recording">Outbound Call Recording</Label>
+                <Label htmlFor="edit_outbound_recording">{t("outboundRecording")}</Label>
                 <Switch
                   id="edit_outbound_recording"
                   checked={formData.outbound_call_recording_enabled}
@@ -372,9 +375,9 @@ export default function PhoneNumbersPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                Cancel
+                {tCommon("cancel")}
               </Button>
-              <Button onClick={handleUpdate}>Save Changes</Button>
+              <Button onClick={handleUpdate}>{tCommon("save")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

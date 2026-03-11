@@ -7,11 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Mic, RefreshCw, Volume2, User } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Voice } from "@/lib/retell-types";
 
-export default function VoicesPage() {
+interface VoicesPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default function VoicesPage({ params }: VoicesPageProps) {
+  const [locale, setLocale] = useState<string>("zh");
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const t = useTranslations("voices");
+  const tCommon = useTranslations("common");
+
+  useEffect(() => {
+    params.then((p) => setLocale(p.locale));
+  }, [params]);
 
   const fetchVoices = async () => {
     setLoading(true);
@@ -21,7 +34,7 @@ export default function VoicesPage() {
       setVoices(data.data || []);
     } catch (error) {
       console.error("Error fetching voices:", error);
-      toast.error("Failed to fetch voices");
+      toast.error(tCommon("error"));
     } finally {
       setLoading(false);
     }
@@ -32,27 +45,23 @@ export default function VoicesPage() {
   }, []);
 
   return (
-    <DashboardLayout>
+    <DashboardLayout locale={locale}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Voices</h1>
-            <p className="text-muted-foreground">
-              Available voices for AI agents
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-muted-foreground">{t("description")}</p>
           </div>
           <Button variant="outline" onClick={fetchVoices} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {tCommon("refresh")}
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Available Voices</CardTitle>
-            <CardDescription>
-              Browse all available voices from Retell AI
-            </CardDescription>
+            <CardTitle>{t("availableVoices")}</CardTitle>
+            <CardDescription>{t("availableVoicesDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -62,8 +71,7 @@ export default function VoicesPage() {
             ) : voices.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Mic className="h-12 w-12 mb-4" />
-                <p>No voices found</p>
-                <p className="text-sm">Check your API configuration</p>
+                <p>{tCommon("noData")}</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -113,7 +121,7 @@ export default function VoicesPage() {
                             rel="noopener noreferrer"
                           >
                             <Volume2 className="h-4 w-4 mr-2" />
-                            Listen Sample
+                            {t("listenSample")}
                           </a>
                         </Button>
                       )}
