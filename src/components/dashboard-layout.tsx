@@ -28,7 +28,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   useEffect(() => {
     let mounted = true;
     let retryCount = 0;
-    const maxRetries = 2;
+    const maxRetries = 5;
 
     const checkAuth = async () => {
       try {
@@ -46,30 +46,27 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
           }
         }
 
-        // If not ok and we haven't retried too many times
+        retryCount++;
         if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(checkAuth, 500);
-          return;
-        }
-
-        // If still failing after retries
-        if (mounted) {
-          router.push(`/${locale}/login`);
+          // Exponential backoff
+          const delay = Math.min(1000 * Math.pow(1.5, retryCount), 4000);
+          setTimeout(checkAuth, delay);
+        } else {
+          // Final fail, redirect
+          if (mounted) {
+            router.push(`/${locale}/login`);
+          }
         }
       } catch (error) {
         console.error("Auth check error:", error);
+        retryCount++;
         if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(checkAuth, 500);
-          return;
-        }
-        if (mounted) {
-          router.push(`/${locale}/login`);
-        }
-      } finally {
-        if (mounted && retryCount >= maxRetries) {
-          setLoading(false);
+          const delay = Math.min(1000 * Math.pow(1.5, retryCount), 4000);
+          setTimeout(checkAuth, delay);
+        } else {
+          if (mounted) {
+            router.push(`/${locale}/login`);
+          }
         }
       }
     };
