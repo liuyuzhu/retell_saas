@@ -27,11 +27,24 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
 
   useEffect(() => {
     let mounted = true;
-    let retryCount = 0;
-    const maxRetries = 5;
 
     const checkAuth = async () => {
       try {
+        // Check localStorage first - if we just logged in
+        const cachedUser = localStorage.getItem('auth_user');
+        const cachedTimestamp = localStorage.getItem('auth_timestamp');
+        
+        if (cachedUser && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp, 10);
+          const now = Date.now();
+          if (now - timestamp < 30000) { // 30 seconds
+            setUser(JSON.parse(cachedUser));
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Try API check
         const res = await fetch("/api/auth/me", {
           credentials: 'include',
           cache: 'no-store',
@@ -46,27 +59,26 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
           }
         }
 
-        retryCount++;
-        if (retryCount < maxRetries) {
-          // Exponential backoff
-          const delay = Math.min(1000 * Math.pow(1.5, retryCount), 4000);
-          setTimeout(checkAuth, delay);
-        } else {
-          // Final fail, redirect
-          if (mounted) {
-            router.push(`/${locale}/login`);
-          }
+        // If failed, redirect
+        if (mounted) {
+          router.push(`/${locale}/login`);
         }
       } catch (error) {
         console.error("Auth check error:", error);
-        retryCount++;
-        if (retryCount < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(1.5, retryCount), 4000);
-          setTimeout(checkAuth, delay);
-        } else {
-          if (mounted) {
-            router.push(`/${locale}/login`);
+        // Check if we have cache
+        const cachedUser = localStorage.getItem('auth_user');
+        const cachedTimestamp = localStorage.getItem('auth_timestamp');
+        if (cachedUser && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp, 10);
+          const now = Date.now();
+          if (now - timestamp < 60000) { // 1 minute
+            setUser(JSON.parse(cachedUser));
+            setLoading(false);
+            return;
           }
+        }
+        if (mounted) {
+          router.push(`/${locale}/login`);
         }
       }
     };
