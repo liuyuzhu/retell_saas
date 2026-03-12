@@ -62,7 +62,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       toast.success("登录成功");
       
       // Save user info to localStorage for quick access
-      if (data.user) {
+      if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }
@@ -119,7 +119,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       toast.success("注册成功");
       
       // Save user info to localStorage for quick access
-      if (data.user) {
+      if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }

@@ -97,16 +97,20 @@ export function AppSidebar({ locale, user }: AppSidebarProps) {
   const handleLogout = async () => {
     try {
       // Clear localStorage
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_timestamp');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_timestamp');
+      }
       await fetch("/api/auth/logout", { method: "POST" });
       router.push(`/${locale}/login`);
       router.refresh();
     } catch (error) {
       console.error("Logout error:", error);
       // Even if API fails, still clear local storage and redirect
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_timestamp');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_timestamp');
+      }
       router.push(`/${locale}/login`);
       router.refresh();
     }

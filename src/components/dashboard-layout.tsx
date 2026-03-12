@@ -31,20 +31,21 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
     const checkAuth = async () => {
       try {
         // Check localStorage first - if we just logged in
-        const cachedUser = localStorage.getItem('auth_user');
-        const cachedTimestamp = localStorage.getItem('auth_timestamp');
-        
-        if (cachedUser && cachedTimestamp) {
-          const timestamp = parseInt(cachedTimestamp, 10);
-          const now = Date.now();
-          if (now - timestamp < 30000) { // 30 seconds
-            setUser(JSON.parse(cachedUser));
-            setLoading(false);
-            return;
+        if (typeof window !== 'undefined') {
+          const cachedUser = localStorage.getItem('auth_user');
+          const cachedTimestamp = localStorage.getItem('auth_timestamp');
+          
+          if (cachedUser && cachedTimestamp) {
+            const timestamp = parseInt(cachedTimestamp, 10);
+            const now = Date.now();
+            if (now - timestamp < 30000) { // 30 seconds
+              setUser(JSON.parse(cachedUser));
+              setLoading(false);
+            }
           }
         }
 
-        // Try API check
+        // Try API check in background
         const res = await fetch("/api/auth/me", {
           credentials: 'include',
           cache: 'no-store',
@@ -55,29 +56,38 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
           if (mounted && data.user) {
             setUser(data.user);
             setLoading(false);
+            
+            // Update cache
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('auth_user', JSON.stringify(data.user));
+              localStorage.setItem('auth_timestamp', Date.now().toString());
+            }
             return;
           }
         }
 
-        // If failed, redirect
-        if (mounted) {
+        // If failed and no user set, redirect
+        if (mounted && !user) {
           router.push(`/${locale}/login`);
         }
       } catch (error) {
         console.error("Auth check error:", error);
         // Check if we have cache
-        const cachedUser = localStorage.getItem('auth_user');
-        const cachedTimestamp = localStorage.getItem('auth_timestamp');
-        if (cachedUser && cachedTimestamp) {
-          const timestamp = parseInt(cachedTimestamp, 10);
-          const now = Date.now();
-          if (now - timestamp < 60000) { // 1 minute
-            setUser(JSON.parse(cachedUser));
-            setLoading(false);
-            return;
+        if (typeof window !== 'undefined') {
+          const cachedUser = localStorage.getItem('auth_user');
+          const cachedTimestamp = localStorage.getItem('auth_timestamp');
+          if (cachedUser && cachedTimestamp) {
+            const timestamp = parseInt(cachedTimestamp, 10);
+            const now = Date.now();
+            if (now - timestamp < 60000) { // 1 minute
+              setUser(JSON.parse(cachedUser));
+              setLoading(false);
+              return;
+            }
           }
         }
-        if (mounted) {
+        // Only redirect if we don't have user
+        if (mounted && !user) {
           router.push(`/${locale}/login`);
         }
       }
@@ -88,7 +98,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
     return () => {
       mounted = false;
     };
-  }, [locale, router]);
+  }, [locale, router, user]);
 
   if (loading) {
     return (
