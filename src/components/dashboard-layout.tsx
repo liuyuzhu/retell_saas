@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileNav } from "@/components/mobile-nav";
@@ -24,6 +24,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasUserRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -39,7 +40,9 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
             const timestamp = parseInt(cachedTimestamp, 10);
             const now = Date.now();
             if (now - timestamp < 30000) { // 30 seconds
-              setUser(JSON.parse(cachedUser));
+              const parsedUser = JSON.parse(cachedUser);
+              setUser(parsedUser);
+              hasUserRef.current = true;
               setLoading(false);
             }
           }
@@ -55,6 +58,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
           const data = await res.json();
           if (mounted && data.user) {
             setUser(data.user);
+            hasUserRef.current = true;
             setLoading(false);
             
             // Update cache
@@ -67,7 +71,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
         }
 
         // If failed and no user set, redirect
-        if (mounted && !user) {
+        if (mounted && !hasUserRef.current) {
           router.push(`/${locale}/login`);
         }
       } catch (error) {
@@ -81,13 +85,14 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
             const now = Date.now();
             if (now - timestamp < 60000) { // 1 minute
               setUser(JSON.parse(cachedUser));
+              hasUserRef.current = true;
               setLoading(false);
               return;
             }
           }
         }
         // Only redirect if we don't have user
-        if (mounted && !user) {
+        if (mounted && !hasUserRef.current) {
           router.push(`/${locale}/login`);
         }
       }
@@ -98,7 +103,8 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
     return () => {
       mounted = false;
     };
-  }, [locale, router, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale, router]);
 
   if (loading) {
     return (
