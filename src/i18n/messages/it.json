@@ -24,7 +24,8 @@
     "voices": "Voci",
     "conversations": "Conversazioni",
     "settings": "Impostazioni",
-    "users": "Gestione Utenti"
+    "users": "Gestione Utenti",
+    "systemSettings": "Configurazione Sistema"
   },
   "dashboard": {
     "title": "Dashboard",

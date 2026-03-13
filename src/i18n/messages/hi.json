@@ -24,7 +24,8 @@
     "voices": "आवाज़ें",
     "conversations": "वार्तालाप",
     "settings": "सेटिंग्स",
-    "users": "उपयोगकर्ता प्रबंधन"
+    "users": "उपयोगकर्ता प्रबंधन",
+    "systemSettings": "सिस्टम कॉन्फ़िगरेशन"
   },
   "dashboard": {
     "title": "डैशबोर्ड",

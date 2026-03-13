@@ -61,6 +61,11 @@ const adminNavItems = [
     href: "/admin/users",
     icon: Users,
   },
+  {
+    titleKey: "systemSettings",
+    href: "/admin/settings",
+    icon: Settings,
+  },
 ];
 
 interface User {

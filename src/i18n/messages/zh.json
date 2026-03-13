@@ -24,7 +24,8 @@
     "voices": "语音库",
     "conversations": "对话记录",
     "settings": "系统设置",
-    "users": "用户管理"
+    "users": "用户管理",
+    "systemSettings": "系统配置"
   },
   "dashboard": {
     "title": "仪表盘",

@@ -24,7 +24,8 @@
     "voices": "音声",
     "conversations": "会話",
     "settings": "設定",
-    "users": "ユーザー管理"
+    "users": "ユーザー管理",
+    "systemSettings": "システム設定"
   },
   "dashboard": {
     "title": "ダッシュボード",

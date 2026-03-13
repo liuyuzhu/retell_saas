@@ -24,7 +24,8 @@
     "voices": "الأصوات",
     "conversations": "المحادثات",
     "settings": "الإعدادات",
-    "users": "إدارة المستخدمين"
+    "users": "إدارة المستخدمين",
+    "systemSettings": "إعدادات النظام"
   },
   "dashboard": {
     "title": "لوحة التحكم",
