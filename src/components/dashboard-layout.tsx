@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileNav } from "@/components/mobile-nav";
@@ -24,87 +24,108 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const hasUserRef = useRef(false);
+  const hasCheckedRef = useRef(false);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const checkAuth = async () => {
-      try {
-        // Check localStorage first - if we just logged in
-        if (typeof window !== 'undefined') {
-          const cachedUser = localStorage.getItem('auth_user');
-          const cachedTimestamp = localStorage.getItem('auth_timestamp');
-          
-          if (cachedUser && cachedTimestamp) {
-            const timestamp = parseInt(cachedTimestamp, 10);
-            const now = Date.now();
-            if (now - timestamp < 30000) { // 30 seconds
+  const checkAuth = useCallback(async () => {
+    if (hasCheckedRef.current) return;
+    
+    try {
+      // Check localStorage first - if we just logged in
+      if (typeof window !== 'undefined') {
+        const cachedUser = localStorage.getItem('auth_user');
+        const cachedTimestamp = localStorage.getItem('auth_timestamp');
+        
+        if (cachedUser && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp, 10);
+          const now = Date.now();
+          // Use cache for 5 minutes
+          if (now - timestamp < 300000) {
+            try {
               const parsedUser = JSON.parse(cachedUser);
               setUser(parsedUser);
-              hasUserRef.current = true;
               setLoading(false);
-            }
-          }
-        }
-
-        // Try API check in background
-        const res = await fetch("/api/auth/me", {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted && data.user) {
-            setUser(data.user);
-            hasUserRef.current = true;
-            setLoading(false);
-            
-            // Update cache
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('auth_user', JSON.stringify(data.user));
-              localStorage.setItem('auth_timestamp', Date.now().toString());
-            }
-            return;
-          }
-        }
-
-        // If failed and no user set, redirect
-        if (mounted && !hasUserRef.current) {
-          router.push(`/${locale}/login`);
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        // Check if we have cache
-        if (typeof window !== 'undefined') {
-          const cachedUser = localStorage.getItem('auth_user');
-          const cachedTimestamp = localStorage.getItem('auth_timestamp');
-          if (cachedUser && cachedTimestamp) {
-            const timestamp = parseInt(cachedTimestamp, 10);
-            const now = Date.now();
-            if (now - timestamp < 60000) { // 1 minute
-              setUser(JSON.parse(cachedUser));
-              hasUserRef.current = true;
-              setLoading(false);
+              hasCheckedRef.current = true;
+              // Still verify in background but don't wait
+              fetch("/api/auth/me", {
+                credentials: 'include',
+                cache: 'no-store',
+              }).then(res => {
+                if (res.ok) {
+                  res.json().then(data => {
+                    if (data.user) {
+                      setUser(data.user);
+                      localStorage.setItem('auth_user', JSON.stringify(data.user));
+                      localStorage.setItem('auth_timestamp', Date.now().toString());
+                    }
+                  });
+                }
+              }).catch(() => {});
               return;
+            } catch (e) {
+              console.error("Failed to parse cached user:", e);
             }
           }
-        }
-        // Only redirect if we don't have user
-        if (mounted && !hasUserRef.current) {
-          router.push(`/${locale}/login`);
         }
       }
-    };
 
-    checkAuth();
+      // Try API check
+      const res = await fetch("/api/auth/me", {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setLoading(false);
+          hasCheckedRef.current = true;
+          
+          // Update cache
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('auth_user', JSON.stringify(data.user));
+            localStorage.setItem('auth_timestamp', Date.now().toString());
+          }
+          return;
+        }
+      }
 
-    return () => {
-      mounted = false;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      // Auth failed - clear cache and redirect
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_timestamp');
+      }
+      router.push(`/${locale}/login`);
+    } catch (error) {
+      console.error("Auth check error:", error);
+      
+      // Check cache on error
+      if (typeof window !== 'undefined') {
+        const cachedUser = localStorage.getItem('auth_user');
+        const cachedTimestamp = localStorage.getItem('auth_timestamp');
+        if (cachedUser && cachedTimestamp) {
+          const timestamp = parseInt(cachedTimestamp, 10);
+          const now = Date.now();
+          if (now - timestamp < 300000) { // 5 minutes
+            try {
+              setUser(JSON.parse(cachedUser));
+              setLoading(false);
+              hasCheckedRef.current = true;
+              return;
+            } catch (e) {
+              console.error("Failed to parse cached user:", e);
+            }
+          }
+        }
+      }
+      
+      router.push(`/${locale}/login`);
+    }
   }, [locale, router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   if (loading) {
     return (
@@ -115,7 +136,11 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   const isAdmin = user.role === "admin";
