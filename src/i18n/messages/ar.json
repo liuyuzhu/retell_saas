@@ -122,8 +122,30 @@
     "inbound": "وارد",
     "outbound": "صادر",
     "startCall": "بدء المكالمة",
+    "startWebCall": "بدء مكالمة ويب",
     "createWebCall": "إنشاء مكالمة ويب",
-    "webCallDesc": "تتيح مكالمات الويب تضمين صوت الذكاء الاصطناعي مباشرة في تطبيق الويب الخاص بك."
+    "webCallDesc": "تتيح مكالمات الويب تضمين صوت الذكاء الاصطناعي مباشرة في تطبيق الويب الخاص بك.",
+    "selectAgent": "اختر وكيلاً",
+    "selectAgentPlaceholder": "يرجى اختيار وكيل ذكاء اصطناعي",
+    "noAgents": "لا توجد وكلاء متاحين",
+    "callStarted": "بدأت المكالمة",
+    "webCallFailed": "فشل إنشاء مكالمة ويب"
+  },
+  "webCall": {
+    "title": "Web Call",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "ended": "Call Ended",
+    "error": "Call Error",
+    "agentIdle": "Idle",
+    "agentListening": "Listening",
+    "agentSpeaking": "Speaking",
+    "callId": "Call ID",
+    "muted": "Muted",
+    "backToCalls": "Back to Calls",
+    "connectingTip": "Establishing connection...",
+    "connectedTip": "Call in progress.",
+    "endedTip": "Duration: {duration}"
   },
   "voices": {
     "title": "الأصوات",

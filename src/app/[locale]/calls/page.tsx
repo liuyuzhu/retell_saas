@@ -27,11 +27,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock } from "lucide-react";
+import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Call, CreatePhoneCallRequest, CreateWebCallRequest } from "@/lib/retell-types";
+import { useRouter } from "next/navigation";
+import { Call, Agent } from "@/lib/retell-types";
 
 interface CallsPageProps {
   params: Promise<{ locale: string }>;
@@ -40,9 +48,12 @@ interface CallsPageProps {
 export default function CallsPage({ params }: CallsPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [calls, setCalls] = useState<Call[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAgents, setLoadingAgents] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"phone" | "web">("phone");
+  const [startingCall, setStartingCall] = useState(false);
   const [formData, setFormData] = useState({
     from_number: "",
     to_number: "",
@@ -52,6 +63,7 @@ export default function CallsPage({ params }: CallsPageProps) {
 
   const t = useTranslations("calls");
   const tCommon = useTranslations("common");
+  const router = useRouter();
 
   useEffect(() => {
     params.then((p) => setLocale(p.locale));
@@ -60,7 +72,7 @@ export default function CallsPage({ params }: CallsPageProps) {
   const fetchCalls = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/calls");
+      const res = await fetch("/api/calls", { credentials: "include" });
       const data = await res.json();
       setCalls(data.data || []);
     } catch (error) {
@@ -71,18 +83,40 @@ export default function CallsPage({ params }: CallsPageProps) {
     }
   };
 
+  const fetchAgents = async () => {
+    setLoadingAgents(true);
+    try {
+      const res = await fetch("/api/agents", { credentials: "include" });
+      const data = await res.json();
+      setAgents(data.data || []);
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
   useEffect(() => {
     fetchCalls();
   }, []);
 
-  const handleCreateCall = async () => {
+  // Fetch agents when dialog opens
+  useEffect(() => {
+    if (createDialogOpen) {
+      fetchAgents();
+    }
+  }, [createDialogOpen]);
+
+  const handleCreatePhoneCall = async () => {
     try {
+      setStartingCall(true);
       const res = await fetch("/api/calls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           ...formData,
-          call_type: callType === "web" ? "web_call" : "phone_call",
+          call_type: "phone_call",
         }),
       });
       
@@ -91,13 +125,62 @@ export default function CallsPage({ params }: CallsPageProps) {
         throw new Error(error.error || tCommon("error"));
       }
       
-      toast.success(tCommon("success"));
+      toast.success(t("callStarted"));
       setCreateDialogOpen(false);
       setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
       fetchCalls();
     } catch (error) {
       console.error("Error creating call:", error);
       toast.error(error instanceof Error ? error.message : tCommon("error"));
+    } finally {
+      setStartingCall(false);
+    }
+  };
+
+  const handleCreateWebCall = async () => {
+    if (!formData.agent_id) {
+      toast.error(t("selectAgent"));
+      return;
+    }
+
+    try {
+      setStartingCall(true);
+      const res = await fetch("/api/calls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          agent_id: formData.agent_id,
+          call_type: "web_call",
+        }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || tCommon("error"));
+      }
+      
+      const data = await res.json();
+      
+      // Close dialog and navigate to web call page
+      setCreateDialogOpen(false);
+      setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
+      
+      // Navigate to web call page with token
+      // Pass access_token via URL query parameter
+      const callId = data.call_id;
+      const accessToken = data.access_token;
+      
+      if (callId && accessToken) {
+        router.push(`/${locale}/calls/web/${callId}?token=${encodeURIComponent(accessToken)}`);
+      } else {
+        toast.error(t("webCallFailed"));
+      }
+    } catch (error) {
+      console.error("Error creating web call:", error);
+      toast.error(error instanceof Error ? error.message : tCommon("error"));
+    } finally {
+      setStartingCall(false);
     }
   };
 
@@ -105,6 +188,7 @@ export default function CallsPage({ params }: CallsPageProps) {
     try {
       const res = await fetch(`/api/calls/${callId}`, {
         method: "DELETE",
+        credentials: "include",
       });
       
       if (!res.ok) {
@@ -200,35 +284,75 @@ export default function CallsPage({ params }: CallsPageProps) {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="agent_id_call">{tCommon("agentId")} *</Label>
-                        <Input
-                          id="agent_id_call"
-                          placeholder="agent_xxx"
-                          value={formData.agent_id}
-                          onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-                        />
+                        <Label>{tCommon("agentId")} *</Label>
+                        {loadingAgents ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {tCommon("loading")}
+                          </div>
+                        ) : agents.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">{t("noAgents")}</p>
+                        ) : (
+                          <Select
+                            value={formData.agent_id}
+                            onValueChange={(value) => setFormData({ ...formData, agent_id: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectAgentPlaceholder")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {agents.map((agent) => (
+                                <SelectItem key={agent.agent_id} value={agent.agent_id}>
+                                  {agent.agent_name || agent.agent_id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     </TabsContent>
                     <TabsContent value="web" className="space-y-4 mt-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="agent_id_web">{tCommon("agentId")} *</Label>
-                        <Input
-                          id="agent_id_web"
-                          placeholder="agent_xxx"
-                          value={formData.agent_id}
-                          onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })}
-                        />
+                        <Label>{t("selectAgent")} *</Label>
+                        {loadingAgents ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            {tCommon("loading")}
+                          </div>
+                        ) : agents.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">{t("noAgents")}</p>
+                        ) : (
+                          <Select
+                            value={formData.agent_id}
+                            onValueChange={(value) => setFormData({ ...formData, agent_id: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectAgentPlaceholder")} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {agents.map((agent) => (
+                                <SelectItem key={agent.agent_id} value={agent.agent_id}>
+                                  {agent.agent_name || agent.agent_id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">{t("webCallDesc")}</p>
                     </TabsContent>
                   </Tabs>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={startingCall}>
                     {tCommon("cancel")}
                   </Button>
-                  <Button onClick={handleCreateCall}>
-                    {callType === "phone" ? t("startCall") : t("createWebCall")}
+                  <Button 
+                    onClick={callType === "phone" ? handleCreatePhoneCall : handleCreateWebCall}
+                    disabled={startingCall || loadingAgents || agents.length === 0}
+                  >
+                    {startingCall && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {callType === "phone" ? t("startCall") : t("startWebCall")}
                   </Button>
                 </DialogFooter>
               </DialogContent>

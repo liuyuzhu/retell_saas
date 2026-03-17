@@ -122,8 +122,30 @@
     "inbound": "着信",
     "outbound": "発信",
     "startCall": "通話開始",
+    "startWebCall": "ウェブ通話開始",
     "createWebCall": "ウェブ通話を作成",
-    "webCallDesc": "ウェブ通話を使用すると、AI音声をウェブアプリケーションに直接埋め込むことができます。"
+    "webCallDesc": "ウェブ通話を使用すると、AI音声をウェブアプリケーションに直接埋め込むことができます。",
+    "selectAgent": "エージェントを選択",
+    "selectAgentPlaceholder": "AIエージェントを選択してください",
+    "noAgents": "利用可能なエージェントがありません",
+    "callStarted": "通話が開始されました",
+    "webCallFailed": "ウェブ通話の作成に失敗しました"
+  },
+  "webCall": {
+    "title": "ウェブ通話",
+    "connecting": "接続中...",
+    "connected": "通話中",
+    "ended": "通話終了",
+    "error": "通話エラー",
+    "agentIdle": "待機中",
+    "agentListening": "リスニング",
+    "agentSpeaking": "発話中",
+    "callId": "通話ID",
+    "muted": "ミュート中",
+    "backToCalls": "通話リストに戻る",
+    "connectingTip": "接続を確立しています...",
+    "connectedTip": "通話中。マイクボタンでミュート、終了ボタンで通話を終了できます。",
+    "endedTip": "通話時間: {duration}"
   },
   "voices": {
     "title": "音声",

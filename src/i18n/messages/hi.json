@@ -122,8 +122,30 @@
     "inbound": "इनबाउंड",
     "outbound": "आउटबाउंड",
     "startCall": "कॉल शुरू करें",
+    "startWebCall": "वेब कॉल शुरू करें",
     "createWebCall": "वेब कॉल बनाएं",
-    "webCallDesc": "वेब कॉल आपको AI वॉइस को सीधे अपने वेब एप्लिकेशन में एम्बेड करने की अनुमति देती हैं।"
+    "webCallDesc": "वेब कॉल आपको AI वॉइस को सीधे अपने वेब एप्लिकेशन में एम्बेड करने की अनुमति देती हैं।",
+    "selectAgent": "एजेंट चुनें",
+    "selectAgentPlaceholder": "कृपया एक AI एजेंट चुनें",
+    "noAgents": "कोई एजेंट उपलब्ध नहीं",
+    "callStarted": "कॉल शुरू हो गई",
+    "webCallFailed": "वेब कॉल बनाने में विफल"
+  },
+  "webCall": {
+    "title": "Web Call",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "ended": "Call Ended",
+    "error": "Call Error",
+    "agentIdle": "Idle",
+    "agentListening": "Listening",
+    "agentSpeaking": "Speaking",
+    "callId": "Call ID",
+    "muted": "Muted",
+    "backToCalls": "Back to Calls",
+    "connectingTip": "Establishing connection...",
+    "connectedTip": "Call in progress.",
+    "endedTip": "Duration: {duration}"
   },
   "voices": {
     "title": "आवाज़ें",

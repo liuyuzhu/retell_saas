@@ -122,8 +122,30 @@
     "inbound": "Inbound",
     "outbound": "Outbound",
     "startCall": "Start Call",
+    "startWebCall": "Start Web Call",
     "createWebCall": "Create Web Call",
-    "webCallDesc": "Web calls allow you to embed voice AI directly into your web application."
+    "webCallDesc": "Web calls allow you to embed voice AI directly into your web application.",
+    "selectAgent": "Select Agent",
+    "selectAgentPlaceholder": "Please select an AI agent",
+    "noAgents": "No agents available, please create one first",
+    "callStarted": "Call started",
+    "webCallFailed": "Failed to create web call"
+  },
+  "webCall": {
+    "title": "Web Call",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "ended": "Call Ended",
+    "error": "Call Error",
+    "agentIdle": "Idle",
+    "agentListening": "Listening",
+    "agentSpeaking": "Speaking",
+    "callId": "Call ID",
+    "muted": "Muted",
+    "backToCalls": "Back to Calls",
+    "connectingTip": "Establishing connection, please wait...",
+    "connectedTip": "Call in progress. Click microphone to mute, or hang up to end the call.",
+    "endedTip": "Call duration: {duration}"
   },
   "voices": {
     "title": "Voices",

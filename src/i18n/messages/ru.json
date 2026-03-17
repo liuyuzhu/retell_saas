@@ -122,8 +122,30 @@
     "inbound": "Входящий",
     "outbound": "Исходящий",
     "startCall": "Начать звонок",
+    "startWebCall": "Начать веб-звонок",
     "createWebCall": "Создать веб-звонок",
-    "webCallDesc": "Веб-звонки позволяют встраивать ИИ-голос прямо в ваше веб-приложение."
+    "webCallDesc": "Веб-звонки позволяют встраивать ИИ-голос прямо в ваше веб-приложение.",
+    "selectAgent": "Выбрать агента",
+    "selectAgentPlaceholder": "Выберите ИИ-агента",
+    "noAgents": "Нет доступных агентов",
+    "callStarted": "Звонок начат",
+    "webCallFailed": "Не удалось создать веб-звонок"
+  },
+  "webCall": {
+    "title": "Web Call",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "ended": "Call Ended",
+    "error": "Call Error",
+    "agentIdle": "Idle",
+    "agentListening": "Listening",
+    "agentSpeaking": "Speaking",
+    "callId": "Call ID",
+    "muted": "Muted",
+    "backToCalls": "Back to Calls",
+    "connectingTip": "Establishing connection...",
+    "connectedTip": "Call in progress.",
+    "endedTip": "Duration: {duration}"
   },
   "voices": {
     "title": "Голоса",

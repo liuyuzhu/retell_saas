@@ -122,8 +122,30 @@
     "inbound": "呼入",
     "outbound": "呼出",
     "startCall": "发起呼叫",
+    "startWebCall": "开始网络通话",
     "createWebCall": "创建网络通话",
-    "webCallDesc": "网络通话允许您将AI语音直接嵌入到您的Web应用中。"
+    "webCallDesc": "网络通话允许您将AI语音直接嵌入到您的Web应用中。",
+    "selectAgent": "选择代理",
+    "selectAgentPlaceholder": "请选择一个AI代理",
+    "noAgents": "暂无可用代理，请先创建代理",
+    "callStarted": "通话已发起",
+    "webCallFailed": "创建网络通话失败"
+  },
+  "webCall": {
+    "title": "网络通话",
+    "connecting": "正在连接...",
+    "connected": "通话中",
+    "ended": "通话已结束",
+    "error": "通话错误",
+    "agentIdle": "等待中",
+    "agentListening": "正在聆听",
+    "agentSpeaking": "正在说话",
+    "callId": "通话ID",
+    "muted": "已静音",
+    "backToCalls": "返回通话列表",
+    "connectingTip": "正在建立连接，请稍候...",
+    "connectedTip": "通话进行中，您可以点击麦克风按钮静音，或点击挂断按钮结束通话",
+    "endedTip": "通话时长: {duration}"
   },
   "voices": {
     "title": "语音库",
