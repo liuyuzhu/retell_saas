@@ -29,13 +29,6 @@ interface RetellWebClient {
 // Declare global types for SDK
 declare global {
   interface Window {
-    livekitClient?: {
-      Room: new (options?: unknown) => unknown;
-      RoomEvent: Record<string, string>;
-      Track: { Kind: { Audio: string } };
-      createAudioAnalyser: (track: unknown) => { analyser: AnalyserNode; cleanup: () => void };
-    };
-    eventemitter3?: new () => unknown;
     retellClientJsSdk?: {
       RetellWebClient: new () => RetellWebClient;
     };
@@ -71,66 +64,46 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     });
   }, [params]);
 
-  // Load SDK dynamically via script injection
+  // Load SDK via module script
   useEffect(() => {
     if (!isClient || sdkLoaded) return;
 
-    const loadScript = (src: string, globalName: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        // Check if already loaded
-        const globalWindow = window as unknown as Record<string, unknown>;
-        if (globalWindow[globalName]) {
-          resolve();
-          return;
-        }
-        
-        const script = document.createElement("script");
-        script.src = src;
-        script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load ${src}`));
-        document.head.appendChild(script);
-      });
-    };
+    // Check if already loaded
+    if (window.retellClientJsSdk?.RetellWebClient) {
+      setSdkLoaded(true);
+      return;
+    }
 
-    const loadSDK = async () => {
-      try {
-        console.log("Loading SDK dependencies...");
-        
-        // Load dependencies in order
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/livekit-client@2.5.2/dist/livekit-client.umd.js",
-          "livekitClient"
-        );
-        console.log("LiveKit loaded");
-        
-        await loadScript(
-          "https://cdn.jsdelivr.net/npm/eventemitter3@5.0.1/umd/eventemitter3.min.js",
-          "eventemitter3"
-        );
-        console.log("EventEmitter3 loaded");
-        
-        await loadScript(
-          "https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.umd.js",
-          "retellClientJsSdk"
-        );
-        console.log("Retell SDK loaded");
-        
-        // Verify SDK is available
-        if (window.retellClientJsSdk?.RetellWebClient) {
-          console.log("RetellWebClient is available");
-          setSdkLoaded(true);
-        } else {
-          throw new Error("RetellWebClient not found after loading SDK");
-        }
-      } catch (err) {
-        console.error("Failed to load SDK:", err);
-        setError("SDK 加载失败，请刷新页面重试");
+    // Listen for SDK ready event
+    const handleReady = () => {
+      if (window.retellClientJsSdk?.RetellWebClient) {
+        setSdkLoaded(true);
+      } else {
+        setError("SDK 初始化失败");
         setCallStatus("error");
       }
     };
 
-    loadSDK();
+    const handleError = (e: CustomEvent) => {
+      console.error("SDK load error:", e.detail);
+      setError("SDK 加载失败，请刷新页面重试");
+      setCallStatus("error");
+    };
+
+    window.addEventListener("retell-sdk-ready", handleReady);
+    window.addEventListener("retell-sdk-error", handleError as EventListener);
+
+    // Create and inject module script
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "/sdk/retell-loader.mjs";
+    document.head.appendChild(script);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("retell-sdk-ready", handleReady);
+      window.removeEventListener("retell-sdk-error", handleError as EventListener);
+    };
   }, [isClient, sdkLoaded]);
 
   // Get access token from URL params
