@@ -193,20 +193,22 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       const client = new window.retellClientJsSdk!.RetellWebClient();
       clientRef.current = client;
 
+      console.log("[WebCall] Setting up event listeners...");
+
       client.on("call_started", () => {
-        console.log("Call started");
+        console.log("[WebCall] EVENT: call_started");
         setCallStatus("connected");
         startDurationTimer();
         toast.success(t("connected"));
       });
 
       client.on("call_ready", () => {
-        console.log("Call ready");
+        console.log("[WebCall] EVENT: call_ready - audio playback starting");
         client.startAudioPlayback?.();
       });
 
       client.on("call_ended", () => {
-        console.log("Call ended");
+        console.log("[WebCall] EVENT: call_ended");
         setCallStatus("ended");
         setAgentStatus("idle");
         setUserStatus("idle");
@@ -215,75 +217,113 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       });
 
       client.on("error", (err: unknown) => {
-        console.error("Call error:", err);
+        console.error("[WebCall] EVENT: error -", err);
         const errorMsg = typeof err === 'string' ? err : "通话发生错误";
         setError(errorMsg);
         setCallStatus("error");
         stopDurationTimer();
       });
 
+      // Listen for metadata event (might contain transcript)
+      client.on("metadata", (data: unknown) => {
+        console.log("[WebCall] EVENT: metadata -", JSON.stringify(data, null, 2));
+      });
+
+      // Listen for node_transition event
+      client.on("node_transition", (data: unknown) => {
+        console.log("[WebCall] EVENT: node_transition -", JSON.stringify(data, null, 2));
+      });
+
       client.on("agent_start_talking", () => {
+        console.log("[WebCall] Agent started talking");
         setAgentStatus("speaking");
       });
 
       client.on("agent_stop_talking", () => {
+        console.log("[WebCall] Agent stopped talking");
         setAgentStatus("idle");
       });
 
-      // Handle transcript updates
+      // Handle transcript updates - with comprehensive debugging
       client.on("update", (data: unknown) => {
+        console.log("[WebCall] UPDATE EVENT RECEIVED:", JSON.stringify(data, null, 2));
+        
         try {
           const update = data as RetellUpdateEvent;
+          console.log("[WebCall] Parsed update:", {
+            event_type: update.event_type,
+            has_transcript: !!update.transcript,
+            transcript: update.transcript
+          });
+          
+          // Check different possible data structures
+          const rawData = data as Record<string, unknown>;
+          
+          // Structure 1: Standard format { event_type: "update", transcript: {...} }
           if (update.event_type === "update" && update.transcript) {
             const { text, is_final, role } = update.transcript;
+            console.log("[WebCall] Standard format - text:", text, "is_final:", is_final, "role:", role);
             
             if (text) {
-              if (role === "agent") {
-                // Track agent speaking status
-                if (text && !is_final) {
-                  setAgentStatus("speaking");
-                }
-                
-                if (is_final) {
-                  // Add to transcripts
-                  setTranscripts(prev => [...prev, {
-                    id: ++transcriptIdRef.current,
-                    speaker: "agent",
-                    text: text,
-                    timestamp: Date.now(),
-                    isFinal: true
-                  }]);
-                  setCurrentText(prev => ({ ...prev, agent: "" }));
-                } else {
-                  // Update current text
-                  setCurrentText(prev => ({ ...prev, agent: text }));
-                }
-              } else if (role === "user") {
-                // Track user speaking status
-                if (text && !is_final) {
-                  setUserStatus("speaking");
-                }
-                
-                if (is_final) {
-                  setTranscripts(prev => [...prev, {
-                    id: ++transcriptIdRef.current,
-                    speaker: "user",
-                    text: text,
-                    timestamp: Date.now(),
-                    isFinal: true
-                  }]);
-                  setCurrentText(prev => ({ ...prev, user: "" }));
-                  setUserStatus("idle");
-                } else {
-                  setCurrentText(prev => ({ ...prev, user: text }));
-                }
-              }
+              processTranscript(text, is_final, role);
             }
           }
+          // Structure 2: Direct transcript { text, is_final, role }
+          else if (rawData.text && rawData.role) {
+            console.log("[WebCall] Direct transcript format");
+            const text = String(rawData.text);
+            const is_final = Boolean(rawData.is_final);
+            const role = String(rawData.role) as "agent" | "user";
+            processTranscript(text, is_final, role);
+          }
+          // Structure 3: Content in different field
+          else if (rawData.content) {
+            console.log("[WebCall] Content field format:", rawData.content);
+          }
+          // Unknown structure - log for analysis
+          else {
+            console.warn("[WebCall] Unknown update structure, keys:", Object.keys(rawData));
+          }
         } catch (e) {
-          console.error("Error parsing update:", e, data);
+          console.error("[WebCall] Error parsing update:", e, "raw data:", data);
         }
       });
+
+      // Helper function to process transcript
+      function processTranscript(text: string, is_final: boolean, role: "agent" | "user") {
+        console.log(`[WebCall] Processing transcript - role: ${role}, text: "${text}", is_final: ${is_final}`);
+        
+        if (role === "agent") {
+          if (!is_final) {
+            setAgentStatus("speaking");
+            setCurrentText(prev => ({ ...prev, agent: text }));
+          } else {
+            setTranscripts(prev => [...prev, {
+              id: ++transcriptIdRef.current,
+              speaker: "agent",
+              text: text,
+              timestamp: Date.now(),
+              isFinal: true
+            }]);
+            setCurrentText(prev => ({ ...prev, agent: "" }));
+          }
+        } else if (role === "user") {
+          if (!is_final) {
+            setUserStatus("speaking");
+            setCurrentText(prev => ({ ...prev, user: text }));
+          } else {
+            setTranscripts(prev => [...prev, {
+              id: ++transcriptIdRef.current,
+              speaker: "user",
+              text: text,
+              timestamp: Date.now(),
+              isFinal: true
+            }]);
+            setCurrentText(prev => ({ ...prev, user: "" }));
+            setUserStatus("idle");
+          }
+        }
+      }
 
       await client.startCall({
         accessToken,
