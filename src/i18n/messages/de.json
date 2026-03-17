@@ -118,7 +118,8 @@
     "styleDesc": "Stimmstil-Einstellungen",
     "startMessage": "Begrüßungsnachricht",
     "startMessagePlaceholder": "z.B. Hallo! Wie kann ich Ihnen heute helfen?",
-    "startMessageDesc": "Automatisch abgespielte Begrüßung bei Anrufbeginn"
+    "startMessageDesc": "Automatisch abgespielte Begrüßung bei Anrufbeginn",
+    "allLanguages": "Alle Sprachen"
   },
   "calls": {
     "title": "Anrufe",

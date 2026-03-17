@@ -118,7 +118,8 @@
     "styleDesc": "Impostazioni stile vocale",
     "startMessage": "Messaggio di benvenuto",
     "startMessagePlaceholder": "es. Ciao! Come posso aiutarti oggi?",
-    "startMessageDesc": "Messaggio di benvenuto riprodotto automaticamente all'inizio della chiamata"
+    "startMessageDesc": "Messaggio di benvenuto riprodotto automaticamente all'inizio della chiamata",
+    "allLanguages": "Tutte le lingue"
   },
   "calls": {
     "title": "Chiamate",

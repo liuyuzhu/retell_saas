@@ -118,7 +118,8 @@
     "styleDesc": "Paramètres de style vocal",
     "startMessage": "Message de bienvenue",
     "startMessagePlaceholder": "ex. Bonjour ! Comment puis-je vous aider aujourd'hui ?",
-    "startMessageDesc": "Message de bienvenue joué automatiquement au début de l'appel"
+    "startMessageDesc": "Message de bienvenue joué automatiquement au début de l'appel",
+    "allLanguages": "Toutes les langues"
   },
   "calls": {
     "title": "Appels",

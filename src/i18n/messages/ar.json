@@ -118,7 +118,8 @@
     "styleDesc": "إعدادات نمط الصوت",
     "startMessage": "رسالة الترحيب",
     "startMessagePlaceholder": "مثال: مرحباً! كيف يمكنني مساعدتك اليوم؟",
-    "startMessageDesc": "رسالة ترحيب تُلعب تلقائياً عند بدء المكالمة"
+    "startMessageDesc": "رسالة ترحيب تُلعب تلقائياً عند بدء المكالمة",
+    "allLanguages": "جميع اللغات"
   },
   "calls": {
     "title": "المكالمات",

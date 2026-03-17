@@ -118,7 +118,8 @@
     "styleDesc": "语音风格设置",
     "startMessage": "开场白",
     "startMessagePlaceholder": "例如：您好，请问有什么可以帮您？",
-    "startMessageDesc": "通话开始时自动播放的问候语"
+    "startMessageDesc": "通话开始时自动播放的问候语",
+    "allLanguages": "全部语言"
   },
   "calls": {
     "title": "通话管理",

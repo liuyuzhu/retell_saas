@@ -28,14 +28,20 @@ export interface UpdatePhoneNumberRequest {
 
 // ==================== Agents ====================
 
-// Supported languages for agents
+// Supported languages for agents (use 'all' for filtering only, not for agent creation)
 export type AgentLanguage = 'zh-CN' | 'en-US';
+
+// Language filter type (includes 'all' option for filtering)
+export type LanguageFilter = AgentLanguage | 'all';
 
 // Language display configuration
 export const LANGUAGE_CONFIG: Record<AgentLanguage, { name: string; flag: string; code: string }> = {
   'zh-CN': { name: '中文', flag: '🇨🇳', code: 'zh-CN' },
   'en-US': { name: 'English', flag: '🇺🇸', code: 'en-US' },
 };
+
+// All available languages for iteration
+export const AVAILABLE_LANGUAGES: AgentLanguage[] = ['zh-CN', 'en-US'];
 
 export interface Agent {
   agent_id: string;
