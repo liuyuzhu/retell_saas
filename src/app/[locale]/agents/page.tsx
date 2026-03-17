@@ -413,12 +413,11 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm md:text-base truncate">{agent.agent_name || "Unnamed Agent"}</p>
-                          <Badge variant="outline" className="text-xs shrink-0">
-                            {agent.language && LANGUAGE_CONFIG[agent.language] 
-                              ? `${LANGUAGE_CONFIG[agent.language].flag} ${LANGUAGE_CONFIG[agent.language].name}`
-                              : `${ALL_LANGUAGES_OPTION.flag} ${t("allLanguages")}`
-                            }
-                          </Badge>
+                          {agent.language && LANGUAGE_CONFIG[agent.language] && (
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {LANGUAGE_CONFIG[agent.language].flag} {LANGUAGE_CONFIG[agent.language].name}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{agent.agent_id}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
