@@ -74,7 +74,6 @@ const DEFAULT_START_MESSAGES: Record<AgentLanguage, string> = {
 export default function AgentsPage({ params }: AgentsPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [voicesLoading, setVoicesLoading] = useState(false);
@@ -82,7 +81,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [languageFilter, setLanguageFilter] = useState<LanguageFilter>("all");
   const [formData, setFormData] = useState<AgentFormData>({
     agent_name: "",
     voice_id: "",
@@ -107,18 +105,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   useEffect(() => {
     params.then((p) => setLocale(p.locale));
   }, [params]);
-
-  // Filter agents by language
-  // Agents without a language (considered as 'all languages') show up in all language filters
-  useEffect(() => {
-    if (languageFilter === "all") {
-      setFilteredAgents(agents);
-    } else {
-      setFilteredAgents(agents.filter(agent => 
-        agent.language === languageFilter || !agent.language
-      ));
-    }
-  }, [agents, languageFilter]);
 
   const fetchAgents = async () => {
     setLoading(true);
@@ -343,18 +329,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
 
   const defaultLlmId = getDefaultLlmId();
 
-  // Count agents by language
-  // Agents without language are counted as supporting all languages
-  const agentsWithoutLanguage = agents.filter(a => !a.language).length;
-  const languageCounts = {
-    all: agents.length,
-    ...AVAILABLE_LANGUAGES.reduce((acc, lang) => {
-      // Include agents without language (all languages) in each language count
-      acc[lang] = agents.filter(a => a.language === lang).length + agentsWithoutLanguage;
-      return acc;
-    }, {} as Record<AgentLanguage, number>)
-  };
-
   return (
     <DashboardLayout locale={locale}>
       <div className="space-y-4 md:space-y-6">
@@ -412,33 +386,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
           </div>
         </div>
 
-        {/* Language Filter Tabs */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={languageFilter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setLanguageFilter("all")}
-            className="gap-2"
-          >
-            <Globe className="h-4 w-4" />
-            {t("allLanguages")}
-            <Badge variant="secondary" className="ml-1">{languageCounts.all}</Badge>
-          </Button>
-          {AVAILABLE_LANGUAGES.map((lang) => (
-            <Button
-              key={lang}
-              variant={languageFilter === lang ? "default" : "outline"}
-              size="sm"
-              onClick={() => setLanguageFilter(lang)}
-              className="gap-2"
-            >
-              <span>{LANGUAGE_CONFIG[lang].flag}</span>
-              {LANGUAGE_CONFIG[lang].name}
-              <Badge variant="secondary" className="ml-1">{languageCounts[lang]}</Badge>
-            </Button>
-          ))}
-        </div>
-
         <Card>
           <CardHeader className="pb-2 md:pb-4">
             <CardTitle className="text-lg md:text-xl">{t("allAgents")}</CardTitle>
@@ -449,14 +396,14 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               <div className="flex items-center justify-center py-8">
                 <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredAgents.length === 0 ? (
+            ) : agents.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Bot className="h-12 w-12 mb-4" />
                 <p>{tCommon("noData")}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredAgents.map((agent) => (
+                {agents.map((agent) => (
                   <div
                     key={agent.agent_id}
                     className="flex items-start justify-between rounded-lg border p-3 md:p-4"
