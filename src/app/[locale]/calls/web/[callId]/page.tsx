@@ -17,6 +17,31 @@ interface WebCallPageProps {
   params: Promise<{ locale: string; callId: string }>;
 }
 
+// Declare global types for CDN-loaded SDK
+declare global {
+  interface Window {
+    livekitClient?: {
+      Room: new (options?: unknown) => unknown;
+      RoomEvent: Record<string, string>;
+      Track: { Kind: { Audio: string } };
+      RemoteAudioTrack: new (...args: unknown[]) => unknown;
+      createAudioAnalyser: (track: unknown) => { analyser: AnalyserNode; cleanup: () => void };
+    };
+    retellClientJsSdk?: {
+      RetellWebClient: new () => RetellWebClient;
+    };
+  }
+}
+
+interface RetellWebClient {
+  on(event: string, callback: (data?: unknown) => void): void;
+  startCall(options: { accessToken: string; emitRawAudioSamples?: boolean }): Promise<void>;
+  stopCall(): void;
+  mute(): void;
+  unmute(): void;
+  startAudioPlayback?(): Promise<void>;
+}
+
 export default function WebCallPage({ params }: WebCallPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [callId, setCallId] = useState<string>("");
@@ -27,9 +52,9 @@ export default function WebCallPage({ params }: WebCallPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clientRef = useRef<any>(null);
+  const clientRef = useRef<RetellWebClient | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,6 +70,54 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       setCallId(p.callId);
     });
   }, [params]);
+
+  // Load SDK scripts
+  useEffect(() => {
+    if (!isClient || sdkLoaded) return;
+
+    const loadSDK = async () => {
+      try {
+        // Check if already loaded
+        if (window.livekitClient && window.retellClientJsSdk) {
+          setSdkLoaded(true);
+          return;
+        }
+
+        // Load livekit-client from CDN
+        const livekitScript = document.createElement("script");
+        livekitScript.src = "https://cdn.jsdelivr.net/npm/livekit-client@2.5.2/dist/livekit-client.umd.js";
+        livekitScript.async = true;
+
+        // Load retell-client-js-sdk from CDN
+        const retellScript = document.createElement("script");
+        retellScript.src = "https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.umd.js";
+        retellScript.async = true;
+
+        document.head.appendChild(livekitScript);
+        document.head.appendChild(retellScript);
+
+        // Wait for scripts to load
+        await new Promise<void>((resolve, reject) => {
+          livekitScript.onload = () => resolve();
+          livekitScript.onerror = () => reject(new Error("Failed to load livekit-client"));
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          retellScript.onload = () => resolve();
+          retellScript.onerror = () => reject(new Error("Failed to load retell-client-js-sdk"));
+        });
+
+        setSdkLoaded(true);
+        console.log("SDK loaded successfully");
+      } catch (err) {
+        console.error("Failed to load SDK:", err);
+        setError("SDK 加载失败，请刷新页面重试");
+        setCallStatus("error");
+      }
+    };
+
+    loadSDK();
+  }, [isClient, sdkLoaded]);
 
   // Get access token from URL params
   useEffect(() => {
@@ -67,6 +140,12 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       return;
     }
 
+    if (!sdkLoaded || !window.retellClientJsSdk) {
+      setError("SDK 未加载完成，请稍后重试");
+      setCallStatus("error");
+      return;
+    }
+
     setCallStatus("connecting");
     setError(null);
 
@@ -83,9 +162,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         return;
       }
 
-      // Dynamic import for browser-only SDK
-      const { RetellWebClient } = await import("retell-client-js-sdk");
-      const client = new RetellWebClient();
+      // Create RetellWebClient instance
+      const client = new window.retellClientJsSdk!.RetellWebClient();
       clientRef.current = client;
 
       // Set up event handlers
@@ -109,9 +187,10 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         clientRef.current = null;
       });
 
-      client.on("error", (err: string) => {
+      client.on("error", (err: unknown) => {
         console.error("Call error:", err);
-        setError(err || "通话发生错误");
+        const errorMsg = typeof err === 'string' ? err : "通话发生错误";
+        setError(errorMsg);
         setCallStatus("error");
         stopDurationTimer();
       });
@@ -140,7 +219,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       setError(errorMessage);
       setCallStatus("error");
     }
-  }, [accessToken, t]);
+  }, [accessToken, sdkLoaded, t]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -252,10 +331,10 @@ export default function WebCallPage({ params }: WebCallPageProps) {
             {/* Status */}
             <div className="text-center space-y-2">
               <div className={`text-lg font-medium ${getStatusColor()}`}>
-                {(callStatus === "connecting") && (
+                {(callStatus === "connecting" || !sdkLoaded) && (
                   <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
                 )}
-                {getStatusText()}
+                {!sdkLoaded && callStatus === "ready" ? "Loading SDK..." : getStatusText()}
               </div>
               {callStatus === "connected" && (
                 <div className="text-4xl font-mono font-bold text-foreground">
@@ -306,7 +385,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
             {/* Controls */}
             <div className="flex items-center justify-center gap-6">
               {/* Ready state - show start button */}
-              {callStatus === "ready" && accessToken && (
+              {callStatus === "ready" && accessToken && sdkLoaded && (
                 <Button size="lg" onClick={handleStartCall} className="px-8">
                   <Phone className="h-5 w-5 mr-2" />
                   {t("startCall")}
@@ -359,7 +438,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
             )}
 
             {/* Tips */}
-            {callStatus === "ready" && (
+            {callStatus === "ready" && sdkLoaded && (
               <div className="text-sm text-muted-foreground text-center">
                 {t("readyTip")}
               </div>
