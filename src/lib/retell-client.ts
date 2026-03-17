@@ -146,30 +146,32 @@ export class RetellClient {
   }
 
   // ==================== Calls ====================
-  // Note: Retell AI uses web calls and phone calls differently
-  // For listing, we return empty array as the API may not support listing all calls
+  // API Reference: https://docs.retellai.com/api-reference/calls
+  // Note: Call endpoints use /v2 prefix
 
   async listCalls(params?: ListQueryParams): Promise<ListResponse<Call>> {
-    // Retell AI doesn't have a list-all-calls endpoint
-    // Calls are typically retrieved via get-call/{call_id}
-    console.warn('Retell AI does not support listing all calls. Returning empty array.');
-    return { data: [] };
+    // Use POST /v2/list-calls endpoint
+    const result = await this.request<Call[]>('POST', '/v2/list-calls', {
+      filter_criteria: params?.filter_criteria,
+      limit: params?.limit,
+    });
+    return { data: result };
   }
 
   async createPhoneCall(data: CreatePhoneCallRequest): Promise<Call> {
-    return this.request<Call>('POST', '/create-phone-call', data);
+    return this.request<Call>('POST', '/v2/create-phone-call', data);
   }
 
   async createWebCall(data: CreateWebCallRequest): Promise<WebCallResponse> {
-    return this.request<WebCallResponse>('POST', '/create-web-call', data);
+    return this.request<WebCallResponse>('POST', '/v2/create-web-call', data);
   }
 
   async getCall(callId: string): Promise<Call> {
-    return this.request<Call>('GET', `/get-call/${callId}`);
+    return this.request<Call>('GET', `/v2/get-call/${callId}`);
   }
 
   async deleteCall(callId: string): Promise<void> {
-    await this.request<void>('DELETE', `/delete-call/${callId}`);
+    await this.request<void>('DELETE', `/v2/delete-call/${callId}`);
   }
 
   // ==================== Voices ====================
