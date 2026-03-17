@@ -64,8 +64,10 @@ export default function WebCallPage({ params }: WebCallPageProps) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [sdkError, setSdkError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
   const [currentText, setCurrentText] = useState<{ agent: string; user: string }>({ agent: "", user: "" });
+  const [networkStatus, setNetworkStatus] = useState<"good" | "poor" | "disconnected">("good");
 
   const clientRef = useRef<RetellWebClient | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,15 +100,21 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     const handleReady = () => {
       if (window.retellClientJsSdk?.RetellWebClient) {
         setSdkLoaded(true);
+        setSdkError(null);
       } else {
-        setError("SDK 初始化失败");
+        setSdkError("SDK 初始化失败，请刷新页面重试");
         setCallStatus("error");
       }
     };
 
     const handleError = (e: CustomEvent) => {
       console.error("SDK load error:", e.detail);
-      setError("SDK 加载失败，请刷新页面重试");
+      const detail = e.detail as { message?: string; attempts?: number };
+      const errorMsg = detail?.message 
+        ? `SDK 加载失败: ${detail.message}` 
+        : "SDK 加载失败，请检查网络连接后刷新页面重试";
+      setSdkError(errorMsg);
+      setError(errorMsg);
       setCallStatus("error");
     };
 
@@ -116,6 +124,11 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     const script = document.createElement("script");
     script.type = "module";
     script.src = "/sdk/retell-loader.mjs";
+    script.onerror = () => {
+      setSdkError("无法加载 SDK 脚本，请检查网络连接");
+      setError("无法加载 SDK 脚本，请检查网络连接");
+      setCallStatus("error");
+    };
     document.head.appendChild(script);
 
     return () => {
@@ -331,6 +344,21 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     setCallStatus("ended");
     setAgentStatus("idle");
     setUserStatus("idle");
+  };
+
+  const handleRetry = async () => {
+    // Reset state and start a new call
+    setError(null);
+    setCallStatus("ready");
+    setDuration(0);
+    setTranscripts([]);
+    setCurrentText({ agent: "", user: "" });
+    setAgentStatus("idle");
+    setUserStatus("idle");
+    setIsMuted(false);
+    
+    // Navigate back to calls page to create a new call
+    router.push(`/${locale}/calls`);
   };
 
   const handleBack = () => {
@@ -570,12 +598,38 @@ export default function WebCallPage({ params }: WebCallPageProps) {
               </>
             )}
 
-            {/* Ended or Error state */}
-            {(callStatus === "ended" || callStatus === "error") && (
-              <Button onClick={handleBack} className="gap-2">
-                <Phone className="h-4 w-4" />
-                {t("backToCalls")}
-              </Button>
+            {/* Ended state */}
+            {callStatus === "ended" && (
+              <div className="flex flex-col items-center gap-3">
+                <div className="text-center mb-2">
+                  <p className="text-lg font-medium">{t("ended")}</p>
+                  <p className="text-muted-foreground">{t("endedTip", { duration: formatDuration(duration) })}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Button onClick={handleRetry} className="gap-2">
+                    <Phone className="h-4 w-4" />
+                    {t("startNewCall")}
+                  </Button>
+                  <Button variant="outline" onClick={handleBack} className="gap-2">
+                    {t("backToCalls")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Error state */}
+            {callStatus === "error" && (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex gap-3">
+                  <Button onClick={handleRetry} className="gap-2">
+                    <Phone className="h-4 w-4" />
+                    {t("tryAgain")}
+                  </Button>
+                  <Button variant="outline" onClick={handleBack} className="gap-2">
+                    {t("backToCalls")}
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -583,7 +637,6 @@ export default function WebCallPage({ params }: WebCallPageProps) {
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {callStatus === "ready" && sdkLoaded && t("readyTip")}
             {callStatus === "connecting" && t("connectingTip")}
-            {callStatus === "ended" && t("endedTip", { duration: formatDuration(duration) })}
           </div>
         </Card>
       </div>

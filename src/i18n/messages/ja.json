@@ -145,6 +145,8 @@
     "muted": "ミュート中",
     "startCall": "通話開始",
     "backToCalls": "通話リストに戻る",
+    "startNewCall": "新しい通話を開始",
+    "tryAgain": "再試行",
     "readyTip": "「通話開始」をクリックしてAIエージェントとの会話を始めてください",
     "connectingTip": "接続を確立しています...",
     "connectedTip": "通話中。マイクボタンでミュート、終了ボタンで通話を終了できます。",

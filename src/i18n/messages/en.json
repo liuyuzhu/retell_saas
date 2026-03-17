@@ -145,6 +145,8 @@
     "muted": "Muted",
     "startCall": "Start Call",
     "backToCalls": "Back to Calls",
+    "startNewCall": "Start New Call",
+    "tryAgain": "Try Again",
     "readyTip": "Click \"Start Call\" to begin conversation with AI agent",
     "connectingTip": "Establishing connection, please wait...",
     "connectedTip": "Call in progress. Click microphone to mute, or hang up to end the call.",

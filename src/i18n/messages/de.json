@@ -145,6 +145,8 @@
     "muted": "Stummgeschaltet",
     "startCall": "Anruf starten",
     "backToCalls": "Zurück zu Anrufen",
+    "startNewCall": "Neuen Anruf starten",
+    "tryAgain": "Erneut versuchen",
     "readyTip": "Klicken Sie auf \"Anruf starten\", um mit dem KI-Agenten zu sprechen",
     "connectingTip": "Verbindung wird hergestellt...",
     "connectedTip": "Anruf läuft. Mikrofon zum Stummschalten, Auflegen zum Beenden.",

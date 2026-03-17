@@ -145,6 +145,8 @@
     "muted": "Silenciado",
     "startCall": "Iniciar Llamada",
     "backToCalls": "Volver a Llamadas",
+    "startNewCall": "Nueva Llamada",
+    "tryAgain": "Intentar de Nuevo",
     "readyTip": "Haga clic en \"Iniciar Llamada\" para comenzar a hablar con el agente de IA",
     "connectingTip": "Estableciendo conexión...",
     "connectedTip": "Llamada en curso. Micrófono para silenciar, colgar para terminar.",

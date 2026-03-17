@@ -145,6 +145,8 @@
     "muted": "En sourdine",
     "startCall": "Démarrer l'appel",
     "backToCalls": "Retour aux appels",
+    "startNewCall": "Nouvel appel",
+    "tryAgain": "Réessayer",
     "readyTip": "Cliquez sur \"Démarrer l'appel\" pour commencer à parler avec l'agent IA",
     "connectingTip": "Établissement de la connexion...",
     "connectedTip": "Appel en cours. Micro pour couper, raccrocher pour terminer.",
