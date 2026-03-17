@@ -355,7 +355,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                         <p className="text-sm text-muted-foreground text-center py-4">暂无可用 Agent</p>
                       ) : (
                         <div className="space-y-2">
-                          {agents.map((agent) => (
+                          {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                             <div key={agent.agent_id} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`agent-${agent.agent_id}`}
@@ -578,7 +578,7 @@ export default function UsersPage({ params }: UsersPageProps) {
                     <p className="text-sm text-muted-foreground text-center py-4">暂无可用 Agent</p>
                   ) : (
                     <div className="space-y-2">
-                      {agents.map((agent) => (
+                      {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                         <div key={agent.agent_id} className="flex items-center space-x-2">
                           <Checkbox
                             id={`edit-agent-${agent.agent_id}`}

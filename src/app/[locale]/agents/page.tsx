@@ -350,7 +350,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                {agents.map((agent) => (
+                {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                   <div
                     key={agent.agent_id}
                     className="flex items-start justify-between rounded-lg border p-3 md:p-4"

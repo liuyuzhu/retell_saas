@@ -318,7 +318,7 @@ export default function CallsPage({ params }: CallsPageProps) {
                               <SelectValue placeholder={t("selectAgentPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                              {agents.map((agent) => (
+                              {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                                 <SelectItem key={agent.agent_id} value={agent.agent_id}>
                                   {agent.agent_name || agent.agent_id}
                                 </SelectItem>
@@ -347,7 +347,7 @@ export default function CallsPage({ params }: CallsPageProps) {
                               <SelectValue placeholder={t("selectAgentPlaceholder")} />
                             </SelectTrigger>
                             <SelectContent>
-                              {agents.map((agent) => (
+                              {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                                 <SelectItem key={agent.agent_id} value={agent.agent_id}>
                                   {agent.agent_name || agent.agent_id}
                                 </SelectItem>

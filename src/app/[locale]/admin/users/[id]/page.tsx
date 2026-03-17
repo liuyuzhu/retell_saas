@@ -405,7 +405,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {agents.map((agent) => (
+                        {[...new Map(agents.map(a => [a.agent_id, a])).values()].map((agent) => (
                           <div key={agent.agent_id} className="flex items-center space-x-3 p-2 rounded hover:bg-muted">
                             <Checkbox
                               id={`agent-${agent.agent_id}`}
