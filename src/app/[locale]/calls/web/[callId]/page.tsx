@@ -37,11 +37,10 @@ interface RetellWebClient {
 
 interface RetellUpdateEvent {
   event_type: "update";
-  transcript: {
-    text: string;
-    is_final: boolean;
+  transcript: Array<{
     role: "agent" | "user";
-  };
+    content: string;
+  }>;
 }
 
 declare global {
@@ -250,80 +249,30 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         
         try {
           const update = data as RetellUpdateEvent;
-          console.log("[WebCall] Parsed update:", {
-            event_type: update.event_type,
-            has_transcript: !!update.transcript,
-            transcript: update.transcript
-          });
           
-          // Check different possible data structures
-          const rawData = data as Record<string, unknown>;
-          
-          // Structure 1: Standard format { event_type: "update", transcript: {...} }
-          if (update.event_type === "update" && update.transcript) {
-            const { text, is_final, role } = update.transcript;
-            console.log("[WebCall] Standard format - text:", text, "is_final:", is_final, "role:", role);
+          // Handle array format transcript: [{ role, content }, ...]
+          if (update.event_type === "update" && Array.isArray(update.transcript)) {
+            console.log("[WebCall] Processing transcript array with", update.transcript.length, "items");
             
-            if (text) {
-              processTranscript(text, is_final, role);
-            }
-          }
-          // Structure 2: Direct transcript { text, is_final, role }
-          else if (rawData.text && rawData.role) {
-            console.log("[WebCall] Direct transcript format");
-            const text = String(rawData.text);
-            const is_final = Boolean(rawData.is_final);
-            const role = String(rawData.role) as "agent" | "user";
-            processTranscript(text, is_final, role);
-          }
-          // Structure 3: Content in different field
-          else if (rawData.content) {
-            console.log("[WebCall] Content field format:", rawData.content);
-          }
-          // Unknown structure - log for analysis
-          else {
-            console.warn("[WebCall] Unknown update structure, keys:", Object.keys(rawData));
+            // Process each transcript item
+            update.transcript.forEach((item) => {
+              if (item.role && item.content) {
+                console.log(`[WebCall] Processing - role: ${item.role}, content: "${item.content}"`);
+                
+                if (item.role === "agent") {
+                  setAgentStatus("speaking");
+                  setCurrentText(prev => ({ ...prev, agent: item.content }));
+                } else if (item.role === "user") {
+                  setUserStatus("speaking");
+                  setCurrentText(prev => ({ ...prev, user: item.content }));
+                }
+              }
+            });
           }
         } catch (e) {
           console.error("[WebCall] Error parsing update:", e, "raw data:", data);
         }
       });
-
-      // Helper function to process transcript
-      function processTranscript(text: string, is_final: boolean, role: "agent" | "user") {
-        console.log(`[WebCall] Processing transcript - role: ${role}, text: "${text}", is_final: ${is_final}`);
-        
-        if (role === "agent") {
-          if (!is_final) {
-            setAgentStatus("speaking");
-            setCurrentText(prev => ({ ...prev, agent: text }));
-          } else {
-            setTranscripts(prev => [...prev, {
-              id: ++transcriptIdRef.current,
-              speaker: "agent",
-              text: text,
-              timestamp: Date.now(),
-              isFinal: true
-            }]);
-            setCurrentText(prev => ({ ...prev, agent: "" }));
-          }
-        } else if (role === "user") {
-          if (!is_final) {
-            setUserStatus("speaking");
-            setCurrentText(prev => ({ ...prev, user: text }));
-          } else {
-            setTranscripts(prev => [...prev, {
-              id: ++transcriptIdRef.current,
-              speaker: "user",
-              text: text,
-              timestamp: Date.now(),
-              isFinal: true
-            }]);
-            setCurrentText(prev => ({ ...prev, user: "" }));
-            setUserStatus("idle");
-          }
-        }
-      }
 
       await client.startCall({
         accessToken,
