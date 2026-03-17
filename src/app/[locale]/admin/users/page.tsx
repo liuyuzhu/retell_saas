@@ -453,8 +453,8 @@ export default function UsersPage({ params }: UsersPageProps) {
                           <p className="text-xs text-muted-foreground">手机: {user.phone}</p>
                         )}
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {user.agents?.slice(0, 2).map((agentId) => (
-                            <Badge key={agentId} variant="outline" className="text-xs truncate max-w-[100px]">
+                          {user.agents?.slice(0, 2).map((agentId, idx) => (
+                            <Badge key={`${user.id}-${agentId}-${idx}`} variant="outline" className="text-xs truncate max-w-[100px]">
                               {agentId.slice(0, 10)}...
                             </Badge>
                           ))}
