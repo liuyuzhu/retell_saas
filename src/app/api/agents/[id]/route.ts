@@ -126,18 +126,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .eq('agent_id', id)
       .single();
     
+    // Prepare update data - language can be 'all' for all languages
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Handle language: null means 'all' (support all languages)
+    if (language !== undefined) {
+      updateData.language = language || 'all';
+    }
+    if (voice_name !== undefined) updateData.voice_name = voice_name;
+    if (voice_gender !== undefined) updateData.voice_gender = voice_gender;
+    if (style !== undefined) updateData.style = style;
+    if (start_message !== undefined) updateData.start_message = start_message;
+    
     if (existingInfo) {
       // Update existing record
       await client
         .from('agent_info')
-        .update({
-          ...(language && { language }),
-          ...(voice_name !== undefined && { voice_name }),
-          ...(voice_gender && { voice_gender }),
-          ...(style !== undefined && { style }),
-          ...(start_message !== undefined && { start_message }),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('agent_id', id);
     } else {
       // Insert new record
@@ -145,7 +152,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         .from('agent_info')
         .insert({
           agent_id: id,
-          language: language || 'zh-CN',
+          language: language || 'all',
           voice_name: voice_name || null,
           voice_gender: voice_gender || null,
           style: style || null,

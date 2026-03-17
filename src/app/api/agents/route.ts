@@ -150,12 +150,13 @@ export async function POST(request: NextRequest) {
     const result = await retellClient.createAgent(retellBody);
     
     // Store extended info in local database
+    // Note: language can be 'all' to indicate support for all languages
     const client = getSupabaseClient();
     await client
       .from('agent_info')
       .insert({
         agent_id: result.agent_id,
-        language: language || 'zh-CN',
+        language: language || 'all',
         voice_name: voice_name || null,
         voice_gender: voice_gender || null,
         style: style || null,
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
     // Return merged result
     return NextResponse.json({
       ...result,
-      language: language || 'zh-CN',
+      language: language || 'all',
       voice_name,
       voice_gender,
       style,
