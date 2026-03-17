@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retellClient } from '@/lib/retell-client';
-import { UpdateAgentRequest, AgentLanguage } from '@/lib/retell-types';
+import { UpdateAgentRequest } from '@/lib/retell-types';
 import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -47,29 +47,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     const result = await retellClient.getAgent(id);
-    
-    // Merge with local agent info
-    const client = getSupabaseClient();
-    const { data: agentInfo } = await client
-      .from('agent_info')
-      .select('*')
-      .eq('agent_id', id)
-      .single();
-    
-    if (agentInfo) {
-      return NextResponse.json({
-        ...result,
-        language: agentInfo.language as AgentLanguage,
-        voice_name: agentInfo.voice_name || undefined,
-        voice_gender: agentInfo.voice_gender as 'male' | 'female' | undefined,
-        style: agentInfo.style || undefined,
-        conversation_flow: {
-          ...result.conversation_flow,
-          start_msg: agentInfo.start_message || result.conversation_flow?.start_msg,
-        },
-      });
-    }
-    
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error getting agent:', error);
@@ -94,84 +71,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
-    const body: UpdateAgentRequest & {
-      language?: AgentLanguage;
-      voice_name?: string;
-      voice_gender?: 'male' | 'female';
-      style?: string;
-      start_message?: string;
-    } = await request.json();
+    const body: UpdateAgentRequest = await request.json();
     
-    // Extract local fields
-    const { language, voice_name, voice_gender, style, start_message, ...retellBody } = body;
+    const result = await retellClient.updateAgent(id, body);
     
-    // Update start_msg in Retell if provided
-    if (start_message) {
-      retellBody.conversation_flow = {
-        ...retellBody.conversation_flow,
-        start_msg: start_message,
-      };
-    }
-    
-    // Update agent in Retell
-    const result = await retellClient.updateAgent(id, retellBody);
-    
-    // Update extended info in local database
-    const client = getSupabaseClient();
-    
-    // Check if agent_info exists
-    const { data: existingInfo } = await client
-      .from('agent_info')
-      .select('id')
-      .eq('agent_id', id)
-      .single();
-    
-    // Prepare update data - language can be 'all' for all languages
-    const updateData: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
-    
-    // Handle language: null means 'all' (support all languages)
-    if (language !== undefined) {
-      updateData.language = language || 'all';
-    }
-    if (voice_name !== undefined) updateData.voice_name = voice_name;
-    if (voice_gender !== undefined) updateData.voice_gender = voice_gender;
-    if (style !== undefined) updateData.style = style;
-    if (start_message !== undefined) updateData.start_message = start_message;
-    
-    if (existingInfo) {
-      // Update existing record
-      await client
-        .from('agent_info')
-        .update(updateData)
-        .eq('agent_id', id);
-    } else {
-      // Insert new record
-      await client
-        .from('agent_info')
-        .insert({
-          agent_id: id,
-          language: language || 'all',
-          voice_name: voice_name || null,
-          voice_gender: voice_gender || null,
-          style: style || null,
-          start_message: start_message || null,
-        });
-    }
-    
-    // Return merged result
-    return NextResponse.json({
-      ...result,
-      language: language,
-      voice_name,
-      voice_gender,
-      style,
-      conversation_flow: {
-        ...result.conversation_flow,
-        start_msg: start_message || result.conversation_flow?.start_msg,
-      },
-    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating agent:', error);
     return NextResponse.json(
@@ -202,9 +106,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     
     // Remove agent assignments from users
     await client.from('user_agents').delete().eq('agent_id', id);
-    
-    // Remove agent info from local database
-    await client.from('agent_info').delete().eq('agent_id', id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

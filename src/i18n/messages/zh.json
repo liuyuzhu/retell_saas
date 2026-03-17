@@ -102,24 +102,7 @@
     "agentNameRequired": "代理名称为必填项",
     "noLlmConfig": "无可用 LLM 配置",
     "noLlmConfigDesc": "请先创建 LLM 配置或确保现有代理有 LLM ID",
-    "selectVoice": "选择语音",
-    "language": "语言",
-    "selectLanguage": "选择语言",
-    "languageDesc": "选择代理的主要语言，将用于过滤和开场白设置",
-    "voiceName": "语音名称",
-    "voiceNamePlaceholder": "例如：小美、Alice",
-    "voiceNameDesc": "语音的显示名称，便于识别",
-    "voiceGender": "语音性别",
-    "selectVoiceGender": "选择性别",
-    "male": "男声",
-    "female": "女声",
-    "style": "风格",
-    "stylePlaceholder": "例如：friendly、professional",
-    "styleDesc": "语音风格设置",
-    "startMessage": "开场白",
-    "startMessagePlaceholder": "例如：您好，请问有什么可以帮您？",
-    "startMessageDesc": "通话开始时自动播放的问候语",
-    "allLanguages": "全部语言"
+    "selectVoice": "选择语音"
   },
   "calls": {
     "title": "通话管理",
@@ -146,13 +129,7 @@
     "selectAgentPlaceholder": "请选择一个AI代理",
     "noAgents": "暂无可用代理，请先创建代理",
     "callStarted": "通话已发起",
-    "webCallFailed": "创建网络通话失败",
-    "selectLanguage": "选择语言",
-    "languageFilter": "语言过滤",
-    "languageFilterDesc": "根据语言筛选可用代理",
-    "allLanguages": "全部语言",
-    "availableAgents": "可用代理",
-    "availableAgentsDesc": "支持所选语言的代理列表"
+    "webCallFailed": "创建网络通话失败"
   },
   "webCall": {
     "title": "网络通话",

@@ -101,25 +101,8 @@
     "deleteConfirmDesc": "Sei sicuro di voler eliminare questo agente? Questa azione non può essere annullata.",
     "agentNameRequired": "Il nome dell'agente è obbligatorio",
     "noLlmConfig": "Nessuna configurazione LLM disponibile",
-    "noLlmConfigDesc": "Crea prima una configurazione LLM o assicurati che gli agenti esistenti abbiano ID LLM",
-    "selectVoice": "Seleziona voce",
-    "language": "Lingua",
-    "selectLanguage": "Seleziona lingua",
-    "languageDesc": "Seleziona la lingua principale dell'agente per filtraggio e impostazioni di saluto",
-    "voiceName": "Nome voce",
-    "voiceNamePlaceholder": "es. Alice, Bob",
-    "voiceNameDesc": "Nome visualizzato della voce per facile identificazione",
-    "voiceGender": "Genere voce",
-    "selectVoiceGender": "Seleziona genere",
-    "male": "Maschile",
-    "female": "Femminile",
-    "style": "Stile",
-    "stylePlaceholder": "es. amichevole, professionale",
-    "styleDesc": "Impostazioni stile vocale",
-    "startMessage": "Messaggio di benvenuto",
-    "startMessagePlaceholder": "es. Ciao! Come posso aiutarti oggi?",
-    "startMessageDesc": "Messaggio di benvenuto riprodotto automaticamente all'inizio della chiamata",
-    "allLanguages": "Tutte le lingue"
+    "noLlmConfigDesc": "Si prega di creare prima una configurazione LLM o assicurarsi che gli agenti esistenti abbiano ID LLM",
+    "selectVoice": "Seleziona voce"
   },
   "calls": {
     "title": "Chiamate",
@@ -146,13 +129,7 @@
     "selectAgentPlaceholder": "Seleziona un agente IA",
     "noAgents": "Nessun agente disponibile",
     "callStarted": "Chiamata avviata",
-    "webCallFailed": "Impossibile creare la chiamata web",
-    "selectLanguage": "Seleziona lingua",
-    "languageFilter": "Filtro lingua",
-    "languageFilterDesc": "Filtra gli agenti disponibili per lingua",
-    "allLanguages": "Tutte le lingue",
-    "availableAgents": "Agenti disponibili",
-    "availableAgentsDesc": "Agenti che supportano la lingua selezionata"
+    "webCallFailed": "Impossibile creare la chiamata web"
   },
   "webCall": {
     "title": "Chiamata web",

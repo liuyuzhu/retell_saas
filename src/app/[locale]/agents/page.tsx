@@ -30,12 +30,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2, MoreVertical, Globe, MessageSquare } from "lucide-react";
+import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2, MoreVertical } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Agent, Voice, AgentLanguage, LanguageFilter, LANGUAGE_CONFIG, AVAILABLE_LANGUAGES, ALL_LANGUAGES_OPTION } from "@/lib/retell-types";
+import { Agent, Voice } from "@/lib/retell-types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,11 +49,6 @@ interface AgentsPageProps {
 interface AgentFormData {
   agent_name: string;
   voice_id: string;
-  language: LanguageFilter; // Support 'all' for unspecified language
-  voice_name: string;
-  voice_gender: 'male' | 'female' | '';
-  style: string;
-  start_message: string;
   llm_model: string;
   llm_temperature: number;
   llm_system_prompt: string;
@@ -64,12 +58,6 @@ interface AgentFormData {
   interrupt_sensitivity: number;
   speed: number;
 }
-
-// Default start messages for each language
-const DEFAULT_START_MESSAGES: Record<AgentLanguage, string> = {
-  'zh-CN': '您好，请问有什么可以帮您？',
-  'en-US': 'Hello! How can I help you today?',
-};
 
 export default function AgentsPage({ params }: AgentsPageProps) {
   const [locale, setLocale] = useState<string>("zh");
@@ -84,11 +72,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const [formData, setFormData] = useState<AgentFormData>({
     agent_name: "",
     voice_id: "",
-    language: "all",
-    voice_name: "",
-    voice_gender: "",
-    style: "",
-    start_message: "",
     llm_model: "gpt-4o",
     llm_temperature: 0.7,
     llm_system_prompt: "You are a helpful AI assistant.",
@@ -152,18 +135,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     return null;
   };
 
-  // Handle language change - update default start message for specific languages
-  const handleLanguageChange = (language: LanguageFilter) => {
-    setFormData({
-      ...formData,
-      language,
-      // Only auto-fill start message for specific languages, clear for 'all'
-      start_message: language !== 'all' && DEFAULT_START_MESSAGES[language] 
-        ? DEFAULT_START_MESSAGES[language] 
-        : formData.start_message,
-    });
-  };
-
   const handleCreate = async () => {
     if (!formData.agent_name) {
       toast.error(t("agentNameRequired"));
@@ -181,12 +152,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       const requestBody: Record<string, unknown> = {
         agent_name: formData.agent_name,
         voice_id: formData.voice_id || voices[0]?.voice_id || "cartesia-Cleo",
-        // Only send language if it's not 'all'
-        ...(formData.language !== 'all' && { language: formData.language }),
-        voice_name: formData.voice_name || undefined,
-        voice_gender: formData.voice_gender || undefined,
-        style: formData.style || undefined,
-        start_message: formData.start_message || undefined,
         enable_backchannel: formData.enable_backchannel,
         voicemail_detection_enabled: formData.voicemail_detection_enabled,
         emotional_authenticity: formData.emotional_authenticity,
@@ -230,12 +195,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       
       if (formData.agent_name) requestBody.agent_name = formData.agent_name;
       if (formData.voice_id) requestBody.voice_id = formData.voice_id;
-      // Set language to null if 'all' is selected
-      requestBody.language = formData.language === 'all' ? null : formData.language;
-      requestBody.voice_name = formData.voice_name || null;
-      requestBody.voice_gender = formData.voice_gender || null;
-      requestBody.style = formData.style || null;
-      requestBody.start_message = formData.start_message || null;
       requestBody.enable_backchannel = formData.enable_backchannel;
       requestBody.voicemail_detection_enabled = formData.voicemail_detection_enabled;
       if (formData.emotional_authenticity !== undefined) requestBody.emotional_authenticity = formData.emotional_authenticity;
@@ -288,11 +247,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     setFormData({
       agent_name: "",
       voice_id: "",
-      language: "all",
-      voice_name: "",
-      voice_gender: "",
-      style: "",
-      start_message: "",
       llm_model: "gpt-4o",
       llm_temperature: 0.7,
       llm_system_prompt: "You are a helpful AI assistant.",
@@ -306,15 +260,9 @@ export default function AgentsPage({ params }: AgentsPageProps) {
 
   const openEditDialog = (agent: Agent) => {
     setSelectedAgent(agent);
-    const agentLanguage = agent.language || "all";
     setFormData({
       agent_name: agent.agent_name || "",
       voice_id: agent.voice_id || "",
-      language: agentLanguage,
-      voice_name: agent.voice_name || "",
-      voice_gender: agent.voice_gender || "",
-      style: agent.style || "",
-      start_message: agent.conversation_flow?.start_msg || (agentLanguage !== 'all' ? DEFAULT_START_MESSAGES[agentLanguage as AgentLanguage] : ""),
       llm_model: agent.llm_model || "gpt-4o",
       llm_temperature: agent.llm_temperature || 0.7,
       llm_system_prompt: agent.llm_system_prompt || "",
@@ -368,7 +316,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                       tCommon={tCommon}
                       voices={voices}
                       voicesLoading={voicesLoading}
-                      onLanguageChange={handleLanguageChange}
                     />
                     <DialogFooter className="flex-col sm:flex-row gap-2">
                       <Button variant="outline" onClick={() => setCreateDialogOpen(false)} className="w-full sm:w-auto">
@@ -411,41 +358,21 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       <Bot className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                       <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-medium text-sm md:text-base truncate">{agent.agent_name || "Unnamed Agent"}</p>
-                          {agent.language && LANGUAGE_CONFIG[agent.language] && (
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              {LANGUAGE_CONFIG[agent.language].flag} {LANGUAGE_CONFIG[agent.language].name}
-                            </Badge>
-                          )}
-                        </div>
+                        <p className="font-medium text-sm md:text-base truncate">{agent.agent_name || "Unnamed Agent"}</p>
                         <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{agent.agent_id}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {agent.voice_name && (
+                          {agent.voice_id && (
                             <Badge variant="outline" className="text-xs truncate max-w-[120px]">
-                              {agent.voice_name}
+                              {agent.voice_id}
                             </Badge>
                           )}
-                          {agent.voice_gender && (
-                            <Badge variant="secondary" className="text-xs">
-                              {agent.voice_gender === 'male' ? t("male") : t("female")}
-                            </Badge>
-                          )}
-                          {agent.style && (
-                            <Badge variant="secondary" className="text-xs truncate max-w-[100px]">
-                              {agent.style}
-                            </Badge>
+                          {agent.llm_model && (
+                            <Badge variant="secondary" className="text-xs">{agent.llm_model}</Badge>
                           )}
                           {agent.enable_backchannel && (
                             <Badge className="text-xs">{t("enableBackchannel")}</Badge>
                           )}
                         </div>
-                        {agent.conversation_flow?.start_msg && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate max-w-[300px]">
-                            <MessageSquare className="h-3 w-3 inline mr-1" />
-                            {agent.conversation_flow.start_msg}
-                          </p>
-                        )}
                       </div>
                     </div>
                     
@@ -491,14 +418,14 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEditDialog(agent)}>
                             <Edit className="h-4 w-4 mr-2" />
-                            {tCommon("edit")}
+                            编辑
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDelete(agent.agent_id)}
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {tCommon("delete")}
+                            删除
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -524,7 +451,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               tCommon={tCommon}
               voices={voices}
               voicesLoading={voicesLoading}
-              onLanguageChange={handleLanguageChange}
             />
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="w-full sm:w-auto">
@@ -550,7 +476,6 @@ function AgentForm({
   tCommon,
   voices,
   voicesLoading,
-  onLanguageChange,
 }: {
   formData: AgentFormData;
   setFormData: React.Dispatch<React.SetStateAction<AgentFormData>>;
@@ -558,7 +483,6 @@ function AgentForm({
   tCommon: (key: string) => string;
   voices: Voice[];
   voicesLoading: boolean;
-  onLanguageChange: (language: LanguageFilter) => void;
 }) {
   return (
     <div className="grid gap-4 py-4">
@@ -570,35 +494,6 @@ function AgentForm({
           value={formData.agent_name}
           onChange={(e) => setFormData({ ...formData, agent_name: e.target.value })}
         />
-      </div>
-      
-      {/* Language Selection - includes 'all' option */}
-      <div className="grid gap-2">
-        <Label htmlFor="language" className="flex items-center gap-2">
-          <Globe className="h-4 w-4" />
-          {t("language")}
-        </Label>
-        <Select
-          value={formData.language}
-          onValueChange={(value) => onLanguageChange(value as LanguageFilter)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("selectLanguage")} />
-          </SelectTrigger>
-          <SelectContent>
-            {/* All Languages option */}
-            <SelectItem value="all">
-              {ALL_LANGUAGES_OPTION.flag} {t("allLanguages")}
-            </SelectItem>
-            {/* Specific languages */}
-            {AVAILABLE_LANGUAGES.map((lang) => (
-              <SelectItem key={lang} value={lang}>
-                {LANGUAGE_CONFIG[lang].flag} {LANGUAGE_CONFIG[lang].name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">{t("languageDesc")}</p>
       </div>
       
       <div className="grid gap-2">
@@ -627,63 +522,6 @@ function AgentForm({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">{t("voiceIdDesc")}</p>
-      </div>
-
-      {/* Voice Display Name */}
-      <div className="grid gap-2">
-        <Label htmlFor="voice_name">{t("voiceName")}</Label>
-        <Input
-          id="voice_name"
-          placeholder={t("voiceNamePlaceholder")}
-          value={formData.voice_name}
-          onChange={(e) => setFormData({ ...formData, voice_name: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">{t("voiceNameDesc")}</p>
-      </div>
-
-      {/* Voice Gender */}
-      <div className="grid gap-2">
-        <Label htmlFor="voice_gender">{t("voiceGender")}</Label>
-        <Select
-          value={formData.voice_gender}
-          onValueChange={(value) => setFormData({ ...formData, voice_gender: value as 'male' | 'female' })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={t("selectVoiceGender")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="female">{t("female")}</SelectItem>
-            <SelectItem value="male">{t("male")}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Style */}
-      <div className="grid gap-2">
-        <Label htmlFor="style">{t("style")}</Label>
-        <Input
-          id="style"
-          placeholder={t("stylePlaceholder")}
-          value={formData.style}
-          onChange={(e) => setFormData({ ...formData, style: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">{t("styleDesc")}</p>
-      </div>
-
-      {/* Start Message */}
-      <div className="grid gap-2">
-        <Label htmlFor="start_message" className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          {t("startMessage")}
-        </Label>
-        <Textarea
-          id="start_message"
-          placeholder={t("startMessagePlaceholder")}
-          value={formData.start_message}
-          onChange={(e) => setFormData({ ...formData, start_message: e.target.value })}
-          rows={2}
-        />
-        <p className="text-xs text-muted-foreground">{t("startMessageDesc")}</p>
       </div>
 
       <div className="grid gap-2">

@@ -102,24 +102,7 @@
     "agentNameRequired": "اسم الوكيل مطلوب",
     "noLlmConfig": "لا يتوفر تكوين LLM",
     "noLlmConfigDesc": "يرجى إنشاء تكوين LLM أولاً أو التأكد من أن الوكلاء الحاليين لديهم معرفات LLM",
-    "selectVoice": "اختر صوتاً",
-    "language": "اللغة",
-    "selectLanguage": "اختر اللغة",
-    "languageDesc": "اختر اللغة الرئيسية للوكيل للتصفية وإعدادات الترحيب",
-    "voiceName": "اسم الصوت",
-    "voiceNamePlaceholder": "مثال: أحمد، سارة",
-    "voiceNameDesc": "اسم العرض للصوت للتعرف السهل",
-    "voiceGender": "جنس الصوت",
-    "selectVoiceGender": "اختر الجنس",
-    "male": "ذكر",
-    "female": "أنثى",
-    "style": "النمط",
-    "stylePlaceholder": "مثال: ودود، احترافي",
-    "styleDesc": "إعدادات نمط الصوت",
-    "startMessage": "رسالة الترحيب",
-    "startMessagePlaceholder": "مثال: مرحباً! كيف يمكنني مساعدتك اليوم؟",
-    "startMessageDesc": "رسالة ترحيب تُلعب تلقائياً عند بدء المكالمة",
-    "allLanguages": "جميع اللغات"
+    "selectVoice": "اختر صوتاً"
   },
   "calls": {
     "title": "المكالمات",
@@ -146,13 +129,7 @@
     "selectAgentPlaceholder": "يرجى اختيار وكيل ذكاء اصطناعي",
     "noAgents": "لا توجد وكلاء متاحين",
     "callStarted": "بدأت المكالمة",
-    "webCallFailed": "فشل إنشاء مكالمة ويب",
-    "selectLanguage": "اختر اللغة",
-    "languageFilter": "تصفية اللغة",
-    "languageFilterDesc": "تصفية الوكلاء المتاحين حسب اللغة",
-    "allLanguages": "جميع اللغات",
-    "availableAgents": "الوكلاء المتاحون",
-    "availableAgentsDesc": "الوكلاء الذين يدعمون اللغة المحددة"
+    "webCallFailed": "فشل إنشاء مكالمة ويب"
   },
   "webCall": {
     "title": "مكالمة ويب",
