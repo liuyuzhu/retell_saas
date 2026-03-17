@@ -17,22 +17,6 @@ interface WebCallPageProps {
   params: Promise<{ locale: string; callId: string }>;
 }
 
-// Declare global types for CDN-loaded SDK
-declare global {
-  interface Window {
-    livekitClient?: {
-      Room: new (options?: unknown) => unknown;
-      RoomEvent: Record<string, string>;
-      Track: { Kind: { Audio: string } };
-      RemoteAudioTrack: new (...args: unknown[]) => unknown;
-      createAudioAnalyser: (track: unknown) => { analyser: AnalyserNode; cleanup: () => void };
-    };
-    retellClientJsSdk?: {
-      RetellWebClient: new () => RetellWebClient;
-    };
-  }
-}
-
 interface RetellWebClient {
   on(event: string, callback: (data?: unknown) => void): void;
   startCall(options: { accessToken: string; emitRawAudioSamples?: boolean }): Promise<void>;
@@ -40,6 +24,22 @@ interface RetellWebClient {
   mute(): void;
   unmute(): void;
   startAudioPlayback?(): Promise<void>;
+}
+
+// Declare global types for SDK
+declare global {
+  interface Window {
+    livekitClient?: {
+      Room: new (options?: unknown) => unknown;
+      RoomEvent: Record<string, string>;
+      Track: { Kind: { Audio: string } };
+      createAudioAnalyser: (track: unknown) => { analyser: AnalyserNode; cleanup: () => void };
+    };
+    eventemitter3?: new () => unknown;
+    retellClientJsSdk?: {
+      RetellWebClient: new () => RetellWebClient;
+    };
+  }
 }
 
 export default function WebCallPage({ params }: WebCallPageProps) {
@@ -71,44 +71,58 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     });
   }, [params]);
 
-  // Load SDK scripts
+  // Load SDK dynamically via script injection
   useEffect(() => {
     if (!isClient || sdkLoaded) return;
 
-    const loadSDK = async () => {
-      try {
+    const loadScript = (src: string, globalName: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
         // Check if already loaded
-        if (window.livekitClient && window.retellClientJsSdk) {
-          setSdkLoaded(true);
+        const globalWindow = window as unknown as Record<string, unknown>;
+        if (globalWindow[globalName]) {
+          resolve();
           return;
         }
+        
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    };
 
-        // Load livekit-client from CDN
-        const livekitScript = document.createElement("script");
-        livekitScript.src = "https://cdn.jsdelivr.net/npm/livekit-client@2.5.2/dist/livekit-client.umd.js";
-        livekitScript.async = true;
-
-        // Load retell-client-js-sdk from CDN
-        const retellScript = document.createElement("script");
-        retellScript.src = "https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.umd.js";
-        retellScript.async = true;
-
-        document.head.appendChild(livekitScript);
-        document.head.appendChild(retellScript);
-
-        // Wait for scripts to load
-        await new Promise<void>((resolve, reject) => {
-          livekitScript.onload = () => resolve();
-          livekitScript.onerror = () => reject(new Error("Failed to load livekit-client"));
-        });
-
-        await new Promise<void>((resolve, reject) => {
-          retellScript.onload = () => resolve();
-          retellScript.onerror = () => reject(new Error("Failed to load retell-client-js-sdk"));
-        });
-
-        setSdkLoaded(true);
-        console.log("SDK loaded successfully");
+    const loadSDK = async () => {
+      try {
+        console.log("Loading SDK dependencies...");
+        
+        // Load dependencies in order
+        await loadScript(
+          "https://cdn.jsdelivr.net/npm/livekit-client@2.5.2/dist/livekit-client.umd.js",
+          "livekitClient"
+        );
+        console.log("LiveKit loaded");
+        
+        await loadScript(
+          "https://cdn.jsdelivr.net/npm/eventemitter3@5.0.1/umd/eventemitter3.min.js",
+          "eventemitter3"
+        );
+        console.log("EventEmitter3 loaded");
+        
+        await loadScript(
+          "https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.umd.js",
+          "retellClientJsSdk"
+        );
+        console.log("Retell SDK loaded");
+        
+        // Verify SDK is available
+        if (window.retellClientJsSdk?.RetellWebClient) {
+          console.log("RetellWebClient is available");
+          setSdkLoaded(true);
+        } else {
+          throw new Error("RetellWebClient not found after loading SDK");
+        }
       } catch (err) {
         console.error("Failed to load SDK:", err);
         setError("SDK 加载失败，请刷新页面重试");
@@ -140,7 +154,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       return;
     }
 
-    if (!sdkLoaded || !window.retellClientJsSdk) {
+    if (!sdkLoaded || !window.retellClientJsSdk?.RetellWebClient) {
       setError("SDK 未加载完成，请稍后重试");
       setCallStatus("error");
       return;
@@ -153,7 +167,6 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       // Request microphone permission first
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Stop the test stream immediately
         stream.getTracks().forEach(track => track.stop());
       } catch (permError) {
         console.error("Microphone permission denied:", permError);
@@ -175,8 +188,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       });
 
       client.on("call_ready", () => {
-        console.log("Call ready - agent audio prepared");
-        // Start audio playback for browsers that require user interaction
+        console.log("Call ready");
         client.startAudioPlayback?.();
       });
 
@@ -278,48 +290,32 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
   const getStatusColor = () => {
     switch (callStatus) {
-      case "ready":
-        return "text-blue-500";
-      case "connecting":
-        return "text-yellow-500";
-      case "connected":
-        return "text-green-500";
-      case "ended":
-        return "text-gray-500";
-      case "error":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
+      case "ready": return "text-blue-500";
+      case "connecting": return "text-yellow-500";
+      case "connected": return "text-green-500";
+      case "ended": return "text-gray-500";
+      case "error": return "text-red-500";
+      default: return "text-gray-500";
     }
   };
 
   const getStatusText = () => {
     switch (callStatus) {
-      case "ready":
-        return t("ready");
-      case "connecting":
-        return t("connecting");
-      case "connected":
-        return t("connected");
-      case "ended":
-        return t("ended");
-      case "error":
-        return t("error");
-      default:
-        return "";
+      case "ready": return t("ready");
+      case "connecting": return t("connecting");
+      case "connected": return t("connected");
+      case "ended": return t("ended");
+      case "error": return t("error");
+      default: return "";
     }
   };
 
   const getAgentStatusText = () => {
     switch (agentStatus) {
-      case "idle":
-        return t("agentIdle");
-      case "listening":
-        return t("agentListening");
-      case "speaking":
-        return t("agentSpeaking");
-      default:
-        return "";
+      case "idle": return t("agentIdle");
+      case "listening": return t("agentListening");
+      case "speaking": return t("agentSpeaking");
+      default: return "";
     }
   };
 
@@ -384,7 +380,6 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-6">
-              {/* Ready state - show start button */}
               {callStatus === "ready" && accessToken && sdkLoaded && (
                 <Button size="lg" onClick={handleStartCall} className="px-8">
                   <Phone className="h-5 w-5 mr-2" />
@@ -392,22 +387,15 @@ export default function WebCallPage({ params }: WebCallPageProps) {
                 </Button>
               )}
 
-              {/* Connected state - show mute and end call */}
               {callStatus === "connected" && (
                 <>
                   <Button
                     variant="outline"
                     size="lg"
-                    className={`rounded-full h-16 w-16 ${
-                      isMuted ? "bg-destructive/10" : ""
-                    }`}
+                    className={`rounded-full h-16 w-16 ${isMuted ? "bg-destructive/10" : ""}`}
                     onClick={handleMute}
                   >
-                    {isMuted ? (
-                      <MicOff className="h-6 w-6" />
-                    ) : (
-                      <Mic className="h-6 w-6" />
-                    )}
+                    {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
                   </Button>
                   <Button
                     variant="destructive"
@@ -420,7 +408,6 @@ export default function WebCallPage({ params }: WebCallPageProps) {
                 </>
               )}
 
-              {/* Ended or Error state - show back button */}
               {(callStatus === "ended" || callStatus === "error") && (
                 <Button onClick={handleBack}>
                   <Phone className="h-4 w-4 mr-2" />
