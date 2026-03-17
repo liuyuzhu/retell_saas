@@ -86,7 +86,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const [formData, setFormData] = useState<AgentFormData>({
     agent_name: "",
     voice_id: "",
-    language: "unspecified",
+    language: "all",
     voice_name: "",
     voice_gender: "",
     style: "",
@@ -109,16 +109,14 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   }, [params]);
 
   // Filter agents by language
-  // "all" shows all agents
-  // "unspecified" shows agents without a language
-  // Specific language filter only shows agents with that language
+  // Agents without a language (considered as 'all languages') show up in all language filters
   useEffect(() => {
     if (languageFilter === "all") {
       setFilteredAgents(agents);
-    } else if (languageFilter === "unspecified") {
-      setFilteredAgents(agents.filter(agent => !agent.language));
     } else {
-      setFilteredAgents(agents.filter(agent => agent.language === languageFilter));
+      setFilteredAgents(agents.filter(agent => 
+        agent.language === languageFilter || !agent.language
+      ));
     }
   }, [agents, languageFilter]);
 
@@ -173,9 +171,9 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     setFormData({
       ...formData,
       language,
-      // Only auto-fill start message for specific languages (not 'all' or 'unspecified')
-      start_message: (language !== 'all' && language !== 'unspecified' && DEFAULT_START_MESSAGES[language as AgentLanguage]) 
-        ? DEFAULT_START_MESSAGES[language as AgentLanguage] 
+      // Only auto-fill start message for specific languages, clear for 'all'
+      start_message: language !== 'all' && DEFAULT_START_MESSAGES[language] 
+        ? DEFAULT_START_MESSAGES[language] 
         : formData.start_message,
     });
   };
@@ -197,8 +195,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       const requestBody: Record<string, unknown> = {
         agent_name: formData.agent_name,
         voice_id: formData.voice_id || voices[0]?.voice_id || "cartesia-Cleo",
-        // Only send language if it's a specific language (not 'all' or 'unspecified')
-        ...(formData.language !== 'all' && formData.language !== 'unspecified' && { language: formData.language }),
+        // Only send language if it's not 'all'
+        ...(formData.language !== 'all' && { language: formData.language }),
         voice_name: formData.voice_name || undefined,
         voice_gender: formData.voice_gender || undefined,
         style: formData.style || undefined,
@@ -246,8 +244,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       
       if (formData.agent_name) requestBody.agent_name = formData.agent_name;
       if (formData.voice_id) requestBody.voice_id = formData.voice_id;
-      // Set language to null if 'all' or 'unspecified' is selected
-      requestBody.language = (formData.language === 'all' || formData.language === 'unspecified') ? null : formData.language;
+      // Set language to null if 'all' is selected
+      requestBody.language = formData.language === 'all' ? null : formData.language;
       requestBody.voice_name = formData.voice_name || null;
       requestBody.voice_gender = formData.voice_gender || null;
       requestBody.style = formData.style || null;
@@ -322,7 +320,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
 
   const openEditDialog = (agent: Agent) => {
     setSelectedAgent(agent);
-    const agentLanguage: LanguageFilter = (agent.language || "unspecified") as LanguageFilter;
+    const agentLanguage = agent.language || "all";
     setFormData({
       agent_name: agent.agent_name || "",
       voice_id: agent.voice_id || "",
@@ -330,7 +328,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       voice_name: agent.voice_name || "",
       voice_gender: agent.voice_gender || "",
       style: agent.style || "",
-      start_message: agent.conversation_flow?.start_msg || (agentLanguage !== 'all' && agentLanguage !== 'unspecified' ? DEFAULT_START_MESSAGES[agentLanguage as AgentLanguage] : ""),
+      start_message: agent.conversation_flow?.start_msg || (agentLanguage !== 'all' ? DEFAULT_START_MESSAGES[agentLanguage as AgentLanguage] : ""),
       llm_model: agent.llm_model || "gpt-4o",
       llm_temperature: agent.llm_temperature || 0.7,
       llm_system_prompt: agent.llm_system_prompt || "",
@@ -346,16 +344,15 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const defaultLlmId = getDefaultLlmId();
 
   // Count agents by language
-  // Only count agents that have a specific language
+  // Agents without language are counted as supporting all languages
   const agentsWithoutLanguage = agents.filter(a => !a.language).length;
   const languageCounts = {
     all: agents.length,
     ...AVAILABLE_LANGUAGES.reduce((acc, lang) => {
-      acc[lang] = agents.filter(a => a.language === lang).length;
+      // Include agents without language (all languages) in each language count
+      acc[lang] = agents.filter(a => a.language === lang).length + agentsWithoutLanguage;
       return acc;
-    }, {} as Record<AgentLanguage, number>),
-    // Also show count of agents without language (treated as "all languages")
-    unspecified: agentsWithoutLanguage,
+    }, {} as Record<AgentLanguage, number>)
   };
 
   return (
@@ -440,18 +437,6 @@ export default function AgentsPage({ params }: AgentsPageProps) {
               <Badge variant="secondary" className="ml-1">{languageCounts[lang]}</Badge>
             </Button>
           ))}
-          {languageCounts.unspecified > 0 && (
-            <Button
-              variant={languageFilter === "unspecified" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setLanguageFilter("unspecified")}
-              className="gap-2"
-            >
-              <span>🌐</span>
-              {t("unspecifiedLanguage")}
-              <Badge variant="secondary" className="ml-1">{languageCounts.unspecified}</Badge>
-            </Button>
-          )}
         </div>
 
         <Card>
@@ -484,7 +469,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                           <Badge variant="outline" className="text-xs shrink-0">
                             {agent.language && LANGUAGE_CONFIG[agent.language] 
                               ? `${LANGUAGE_CONFIG[agent.language].flag} ${LANGUAGE_CONFIG[agent.language].name}`
-                              : `🌐 ${t("unspecifiedLanguage")}`
+                              : `${ALL_LANGUAGES_OPTION.flag} ${t("allLanguages")}`
                             }
                           </Badge>
                         </div>
@@ -655,9 +640,9 @@ function AgentForm({
             <SelectValue placeholder={t("selectLanguage")} />
           </SelectTrigger>
           <SelectContent>
-            {/* Unspecified language option */}
-            <SelectItem value="unspecified">
-              🌐 {t("unspecifiedLanguage")}
+            {/* All Languages option */}
+            <SelectItem value="all">
+              {ALL_LANGUAGES_OPTION.flag} {t("allLanguages")}
             </SelectItem>
             {/* Specific languages */}
             {AVAILABLE_LANGUAGES.map((lang) => (

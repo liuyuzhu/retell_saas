@@ -119,8 +119,7 @@
     "startMessage": "Mensaje de bienvenida",
     "startMessagePlaceholder": "ej. ¡Hola! ¿Cómo puedo ayudarle hoy?",
     "startMessageDesc": "Mensaje de bienvenida reproducido automáticamente al iniciar la llamada",
-    "allLanguages": "Todos los idiomas",
-    "unspecifiedLanguage": "Sin especificar"
+    "allLanguages": "Todos los idiomas"
   },
   "calls": {
     "title": "Gestión de Llamadas",

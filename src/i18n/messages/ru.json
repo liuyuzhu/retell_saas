@@ -119,8 +119,7 @@
     "startMessage": "Приветственное сообщение",
     "startMessagePlaceholder": "напр. Здравствуйте! Чем могу помочь?",
     "startMessageDesc": "Приветственное сообщение, воспроизводимое автоматически в начале звонка",
-    "allLanguages": "Все языки",
-    "unspecifiedLanguage": "Не указано"
+    "allLanguages": "Все языки"
   },
   "calls": {
     "title": "Звонки",

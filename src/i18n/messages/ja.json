@@ -119,8 +119,7 @@
     "startMessage": "ウェルカムメッセージ",
     "startMessagePlaceholder": "例：こんにちは！今日はどのようなお手伝いができますか？",
     "startMessageDesc": "通話開始時に自動再生されるウェルカムメッセージ",
-    "allLanguages": "すべての言語",
-    "unspecifiedLanguage": "未指定"
+    "allLanguages": "すべての言語"
   },
   "calls": {
     "title": "通話",

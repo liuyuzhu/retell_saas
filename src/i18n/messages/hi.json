@@ -119,8 +119,7 @@
     "startMessage": "स्वागत संदेश",
     "startMessagePlaceholder": "उदा. नमस्ते! मैं आज आपकी कैसे मदद कर सकता हूँ?",
     "startMessageDesc": "कॉल शुरू होने पर स्वचालित रूप से चलाया जाने वाला स्वागत संदेश",
-    "allLanguages": "सभी भाषाएँ",
-    "unspecifiedLanguage": "अनिर्दिष्ट"
+    "allLanguages": "सभी भाषाएँ"
   },
   "calls": {
     "title": "कॉल",
