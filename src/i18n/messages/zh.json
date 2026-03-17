@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "请选择一个AI代理",
     "noAgents": "暂无可用代理，请先创建代理",
     "callStarted": "通话已发起",
-    "webCallFailed": "创建网络通话失败"
+    "webCallFailed": "创建网络通话失败",
+    "selectLanguage": "对话语言",
+    "selectLanguagePlaceholder": "选择对话语言",
+    "languageDesc": "AI 将使用您选择的语言进行对话"
   },
   "webCall": {
     "title": "网络通话",

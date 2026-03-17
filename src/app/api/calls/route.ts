@@ -141,10 +141,24 @@ export async function POST(request: NextRequest) {
     
     // Check if it's a web call (has agent_id but no phone numbers)
     if (body.call_type === 'web_call' || (!body.from_number && !body.to_number)) {
+      // Prepare dynamic variables for language support
+      const dynamicVariables: Record<string, unknown> = {
+        ...body.retell_llm_dynamic_variables,
+      };
+      
+      // Add language configuration if provided
+      if (body.language) {
+        dynamicVariables.user_language = body.language;
+        dynamicVariables.language_code = body.language;
+      }
+      
       const webCallData: CreateWebCallRequest = {
         agent_id: body.agent_id,
-        metadata: body.metadata,
-        retell_llm_dynamic_variables: body.retell_llm_dynamic_variables,
+        metadata: {
+          ...body.metadata,
+          language: body.language || 'zh',
+        },
+        retell_llm_dynamic_variables: Object.keys(dynamicVariables).length > 0 ? dynamicVariables : undefined,
       };
       
       const result = await retellClient.createWebCall(webCallData);

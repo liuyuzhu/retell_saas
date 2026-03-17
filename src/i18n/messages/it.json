@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "Seleziona un agente IA",
     "noAgents": "Nessun agente disponibile",
     "callStarted": "Chiamata avviata",
-    "webCallFailed": "Impossibile creare la chiamata web"
+    "webCallFailed": "Impossibile creare la chiamata web",
+    "selectLanguage": "Lingua conversazione",
+    "selectLanguagePlaceholder": "Seleziona lingua",
+    "languageDesc": "L'IA risponderà nella lingua selezionata"
   },
   "webCall": {
     "title": "Chiamata web",

@@ -35,11 +35,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock, Loader2 } from "lucide-react";
+import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock, Loader2, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Call, Agent } from "@/lib/retell-types";
+
+// Supported languages for Web Call
+const SUPPORTED_LANGUAGES = [
+  { code: "zh", name: "中文", voiceHint: "普通话" },
+  { code: "en", name: "English", voiceHint: "English" },
+  { code: "ja", name: "日本語", voiceHint: "Japanese" },
+  { code: "ko", name: "한국어", voiceHint: "Korean" },
+  { code: "es", name: "Español", voiceHint: "Spanish" },
+  { code: "fr", name: "Français", voiceHint: "French" },
+  { code: "de", name: "Deutsch", voiceHint: "German" },
+  { code: "pt", name: "Português", voiceHint: "Portuguese" },
+  { code: "ru", name: "Русский", voiceHint: "Russian" },
+  { code: "ar", name: "العربية", voiceHint: "Arabic" },
+  { code: "hi", name: "हिन्दी", voiceHint: "Hindi" },
+];
 
 interface CallsPageProps {
   params: Promise<{ locale: string }>;
@@ -58,6 +73,7 @@ export default function CallsPage({ params }: CallsPageProps) {
     from_number: "",
     to_number: "",
     agent_id: "",
+    language: "zh",  // Default language for web call
     metadata: {},
   });
 
@@ -127,7 +143,7 @@ export default function CallsPage({ params }: CallsPageProps) {
       
       toast.success(t("callStarted"));
       setCreateDialogOpen(false);
-      setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
+      setFormData({ from_number: "", to_number: "", agent_id: "", language: "zh", metadata: {} });
       fetchCalls();
     } catch (error) {
       console.error("Error creating call:", error);
@@ -152,6 +168,7 @@ export default function CallsPage({ params }: CallsPageProps) {
         body: JSON.stringify({
           agent_id: formData.agent_id,
           call_type: "web_call",
+          language: formData.language,
         }),
       });
       
@@ -164,7 +181,7 @@ export default function CallsPage({ params }: CallsPageProps) {
       
       // Close dialog and navigate to web call page
       setCreateDialogOpen(false);
-      setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
+      setFormData({ from_number: "", to_number: "", agent_id: "", language: "zh", metadata: {} });
       
       // Navigate to web call page with token
       // Pass access_token via URL query parameter
@@ -172,7 +189,7 @@ export default function CallsPage({ params }: CallsPageProps) {
       const accessToken = data.access_token;
       
       if (callId && accessToken) {
-        router.push(`/${locale}/calls/web/${callId}?token=${encodeURIComponent(accessToken)}`);
+        router.push(`/${locale}/calls/web/${callId}?token=${encodeURIComponent(accessToken)}&lang=${formData.language}`);
       } else {
         toast.error(t("webCallFailed"));
       }
@@ -339,7 +356,31 @@ export default function CallsPage({ params }: CallsPageProps) {
                           </Select>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{t("webCallDesc")}</p>
+                      <div className="grid gap-2">
+                        <Label className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          {t("selectLanguage")}
+                        </Label>
+                        <Select
+                          value={formData.language}
+                          onValueChange={(value) => setFormData({ ...formData, language: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("selectLanguagePlaceholder")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SUPPORTED_LANGUAGES.map((lang) => (
+                              <SelectItem key={lang.code} value={lang.code}>
+                                <span className="flex items-center gap-2">
+                                  {lang.name}
+                                  <span className="text-xs text-muted-foreground">({lang.voiceHint})</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">{t("languageDesc")}</p>
+                      </div>
                     </TabsContent>
                   </Tabs>
                 </div>

@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "कृपया एक AI एजेंट चुनें",
     "noAgents": "कोई एजेंट उपलब्ध नहीं",
     "callStarted": "कॉल शुरू हो गई",
-    "webCallFailed": "वेब कॉल बनाने में विफल"
+    "webCallFailed": "वेब कॉल बनाने में विफल",
+    "selectLanguage": "बातचीत की भाषा",
+    "selectLanguagePlaceholder": "भाषा चुनें",
+    "languageDesc": "AI चुनी गई भाषा में जवाब देगा"
   },
   "webCall": {
     "title": "वेब कॉल",

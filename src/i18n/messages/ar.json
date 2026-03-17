@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "يرجى اختيار وكيل ذكاء اصطناعي",
     "noAgents": "لا توجد وكلاء متاحين",
     "callStarted": "بدأت المكالمة",
-    "webCallFailed": "فشل إنشاء مكالمة ويب"
+    "webCallFailed": "فشل إنشاء مكالمة ويب",
+    "selectLanguage": "لغة المحادثة",
+    "selectLanguagePlaceholder": "اختر اللغة",
+    "languageDesc": "سيرد الذكاء الاصطناعي باللغة المحددة"
   },
   "webCall": {
     "title": "مكالمة ويب",

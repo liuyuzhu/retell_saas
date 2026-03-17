@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "Выберите ИИ-агента",
     "noAgents": "Нет доступных агентов",
     "callStarted": "Звонок начат",
-    "webCallFailed": "Не удалось создать веб-звонок"
+    "webCallFailed": "Не удалось создать веб-звонок",
+    "selectLanguage": "Язык разговора",
+    "selectLanguagePlaceholder": "Выбрать язык",
+    "languageDesc": "ИИ ответит на выбранном языке"
   },
   "webCall": {
     "title": "Веб-звонок",

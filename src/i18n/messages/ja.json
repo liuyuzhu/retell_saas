@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "AIエージェントを選択してください",
     "noAgents": "利用可能なエージェントがありません",
     "callStarted": "通話が開始されました",
-    "webCallFailed": "ウェブ通話の作成に失敗しました"
+    "webCallFailed": "ウェブ通話の作成に失敗しました",
+    "selectLanguage": "会話言語",
+    "selectLanguagePlaceholder": "会話言語を選択",
+    "languageDesc": "AIは選択した言語で応答します"
   },
   "webCall": {
     "title": "ウェブ通話",

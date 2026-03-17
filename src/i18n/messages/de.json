@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "Bitte wählen Sie einen KI-Agenten",
     "noAgents": "Keine Agenten verfügbar",
     "callStarted": "Anruf gestartet",
-    "webCallFailed": "Webanruf konnte nicht erstellt werden"
+    "webCallFailed": "Webanruf konnte nicht erstellt werden",
+    "selectLanguage": "Gesprächssprache",
+    "selectLanguagePlaceholder": "Sprache auswählen",
+    "languageDesc": "KI antwortet in der gewählten Sprache"
   },
   "webCall": {
     "title": "Webanruf",

@@ -129,7 +129,10 @@
     "selectAgentPlaceholder": "Please select an AI agent",
     "noAgents": "No agents available, please create one first",
     "callStarted": "Call started",
-    "webCallFailed": "Failed to create web call"
+    "webCallFailed": "Failed to create web call",
+    "selectLanguage": "Conversation Language",
+    "selectLanguagePlaceholder": "Select conversation language",
+    "languageDesc": "AI will respond in the selected language"
   },
   "webCall": {
     "title": "Web Call",
