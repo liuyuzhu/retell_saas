@@ -133,6 +133,7 @@
   },
   "webCall": {
     "title": "Web Call",
+    "ready": "Ready",
     "connecting": "Connecting...",
     "connected": "Connected",
     "ended": "Call Ended",
@@ -142,7 +143,9 @@
     "agentSpeaking": "Speaking",
     "callId": "Call ID",
     "muted": "Muted",
+    "startCall": "Start Call",
     "backToCalls": "Back to Calls",
+    "readyTip": "Click \"Start Call\" to begin conversation with AI agent",
     "connectingTip": "Establishing connection, please wait...",
     "connectedTip": "Call in progress. Click microphone to mute, or hang up to end the call.",
     "endedTip": "Call duration: {duration}"

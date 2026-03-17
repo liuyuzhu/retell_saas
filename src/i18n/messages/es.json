@@ -133,6 +133,7 @@
   },
   "webCall": {
     "title": "Llamada Web",
+    "ready": "Listo",
     "connecting": "Conectando...",
     "connected": "Conectado",
     "ended": "Llamada Finalizada",
@@ -142,25 +143,11 @@
     "agentSpeaking": "Hablando",
     "callId": "ID de Llamada",
     "muted": "Silenciado",
+    "startCall": "Iniciar Llamada",
     "backToCalls": "Volver a Llamadas",
+    "readyTip": "Haga clic en \"Iniciar Llamada\" para comenzar a hablar con el agente de IA",
     "connectingTip": "Estableciendo conexión...",
     "connectedTip": "Llamada en curso. Micrófono para silenciar, colgar para terminar.",
-    "endedTip": "Duración de la llamada: {duration}"
-  },
-  "webCall": {
-    "title": "Llamada Web",
-    "connecting": "Conectando...",
-    "connected": "Conectado",
-    "ended": "Llamada Finalizada",
-    "error": "Error de Llamada",
-    "agentIdle": "Inactivo",
-    "agentListening": "Escuchando",
-    "agentSpeaking": "Hablando",
-    "callId": "ID de Llamada",
-    "muted": "Silenciado",
-    "backToCalls": "Volver a Llamadas",
-    "connectingTip": "Estableciendo conexión...",
-    "connectedTip": "Llamada en curso.",
     "endedTip": "Duración de la llamada: {duration}"
   },
   "voices": {

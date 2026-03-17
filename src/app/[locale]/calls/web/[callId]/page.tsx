@@ -10,7 +10,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type CallStatus = "connecting" | "connected" | "ended" | "error";
+type CallStatus = "ready" | "connecting" | "connected" | "ended" | "error";
 type AgentStatus = "idle" | "listening" | "speaking";
 
 interface WebCallPageProps {
@@ -20,7 +20,7 @@ interface WebCallPageProps {
 export default function WebCallPage({ params }: WebCallPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [callId, setCallId] = useState<string>("");
-  const [callStatus, setCallStatus] = useState<CallStatus>("connecting");
+  const [callStatus, setCallStatus] = useState<CallStatus>("ready");
   const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -59,11 +59,30 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     }
   }, [searchParams, isClient]);
 
-  // Initialize Retell client when we have a token
-  const initCall = useCallback(async () => {
-    if (!accessToken || !isClient) return;
+  // Request microphone permission and start call
+  const handleStartCall = useCallback(async () => {
+    if (!accessToken) {
+      setError("缺少访问令牌");
+      setCallStatus("error");
+      return;
+    }
+
+    setCallStatus("connecting");
+    setError(null);
 
     try {
+      // Request microphone permission first
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Stop the test stream immediately
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permError) {
+        console.error("Microphone permission denied:", permError);
+        setError("麦克风权限被拒绝，请在浏览器设置中允许访问麦克风");
+        setCallStatus("error");
+        return;
+      }
+
       // Dynamic import for browser-only SDK
       const { RetellWebClient } = await import("retell-client-js-sdk");
       const client = new RetellWebClient();
@@ -74,6 +93,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         console.log("Call started");
         setCallStatus("connected");
         startDurationTimer();
+        toast.success(t("connected"));
       });
 
       client.on("call_ready", () => {
@@ -86,6 +106,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         console.log("Call ended");
         setCallStatus("ended");
         stopDurationTimer();
+        clientRef.current = null;
       });
 
       client.on("error", (err: string) => {
@@ -115,25 +136,22 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
     } catch (err) {
       console.error("Error initializing call:", err);
-      setError("初始化通话失败，请检查网络连接和麦克风权限");
+      const errorMessage = err instanceof Error ? err.message : "初始化通话失败";
+      setError(errorMessage);
       setCallStatus("error");
     }
-  }, [accessToken, isClient]);
+  }, [accessToken, t]);
 
+  // Cleanup on unmount
   useEffect(() => {
-    if (accessToken && isClient) {
-      initCall();
-    }
-
     return () => {
-      // Cleanup on unmount
       if (clientRef.current) {
         clientRef.current.stopCall();
         clientRef.current = null;
       }
       stopDurationTimer();
     };
-  }, [accessToken, isClient, initCall]);
+  }, []);
 
   const startDurationTimer = () => {
     if (durationIntervalRef.current) return;
@@ -181,6 +199,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
   const getStatusColor = () => {
     switch (callStatus) {
+      case "ready":
+        return "text-blue-500";
       case "connecting":
         return "text-yellow-500";
       case "connected":
@@ -196,6 +216,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
   const getStatusText = () => {
     switch (callStatus) {
+      case "ready":
+        return t("ready");
       case "connecting":
         return t("connecting");
       case "connected":
@@ -230,7 +252,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
             {/* Status */}
             <div className="text-center space-y-2">
               <div className={`text-lg font-medium ${getStatusColor()}`}>
-                {callStatus === "connecting" && (
+                {(callStatus === "connecting") && (
                   <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
                 )}
                 {getStatusText()}
@@ -283,6 +305,15 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-6">
+              {/* Ready state - show start button */}
+              {callStatus === "ready" && accessToken && (
+                <Button size="lg" onClick={handleStartCall} className="px-8">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {t("startCall")}
+                </Button>
+              )}
+
+              {/* Connected state - show mute and end call */}
               {callStatus === "connected" && (
                 <>
                   <Button
@@ -309,6 +340,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
                   </Button>
                 </>
               )}
+
+              {/* Ended or Error state - show back button */}
               {(callStatus === "ended" || callStatus === "error") && (
                 <Button onClick={handleBack}>
                   <Phone className="h-4 w-4 mr-2" />
@@ -326,6 +359,11 @@ export default function WebCallPage({ params }: WebCallPageProps) {
             )}
 
             {/* Tips */}
+            {callStatus === "ready" && (
+              <div className="text-sm text-muted-foreground text-center">
+                {t("readyTip")}
+              </div>
+            )}
             {callStatus === "connecting" && (
               <div className="text-sm text-muted-foreground text-center">
                 {t("connectingTip")}

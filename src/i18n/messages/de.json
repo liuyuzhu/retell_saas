@@ -133,6 +133,7 @@
   },
   "webCall": {
     "title": "Webanruf",
+    "ready": "Bereit",
     "connecting": "Verbinde...",
     "connected": "Verbunden",
     "ended": "Anruf beendet",
@@ -142,23 +143,9 @@
     "agentSpeaking": "Spricht",
     "callId": "Anruf-ID",
     "muted": "Stummgeschaltet",
+    "startCall": "Anruf starten",
     "backToCalls": "Zurück zu Anrufen",
-    "connectingTip": "Verbindung wird hergestellt...",
-    "connectedTip": "Anruf läuft. Mikrofon zum Stummschalten, Auflegen zum Beenden.",
-    "endedTip": "Anrufdauer: {duration}"
-  },
-  "webCall": {
-    "title": "Webanruf",
-    "connecting": "Verbinde...",
-    "connected": "Verbunden",
-    "ended": "Anruf beendet",
-    "error": "Anruffehler",
-    "agentIdle": "Inaktiv",
-    "agentListening": "Hört zu",
-    "agentSpeaking": "Spricht",
-    "callId": "Anruf-ID",
-    "muted": "Stummgeschaltet",
-    "backToCalls": "Zurück zu Anrufen",
+    "readyTip": "Klicken Sie auf \"Anruf starten\", um mit dem KI-Agenten zu sprechen",
     "connectingTip": "Verbindung wird hergestellt...",
     "connectedTip": "Anruf läuft. Mikrofon zum Stummschalten, Auflegen zum Beenden.",
     "endedTip": "Anrufdauer: {duration}"

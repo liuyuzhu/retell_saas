@@ -133,6 +133,7 @@
   },
   "webCall": {
     "title": "网络通话",
+    "ready": "准备就绪",
     "connecting": "正在连接...",
     "connected": "通话中",
     "ended": "通话已结束",
@@ -142,7 +143,9 @@
     "agentSpeaking": "正在说话",
     "callId": "通话ID",
     "muted": "已静音",
+    "startCall": "开始通话",
     "backToCalls": "返回通话列表",
+    "readyTip": "点击「开始通话」按钮开始与 AI 代理对话",
     "connectingTip": "正在建立连接，请稍候...",
     "connectedTip": "通话进行中，您可以点击麦克风按钮静音，或点击挂断按钮结束通话",
     "endedTip": "通话时长: {duration}"
