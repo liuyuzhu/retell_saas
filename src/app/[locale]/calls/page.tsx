@@ -35,11 +35,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock, Loader2 } from "lucide-react";
+import { PhoneCall, Plus, Trash2, RefreshCw, Phone, Video, ExternalLink, Clock, Loader2, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { Call, Agent } from "@/lib/retell-types";
+import { Call, Agent, AgentLanguage, LANGUAGE_CONFIG } from "@/lib/retell-types";
 
 interface CallsPageProps {
   params: Promise<{ locale: string }>;
@@ -54,6 +54,7 @@ export default function CallsPage({ params }: CallsPageProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [callType, setCallType] = useState<"phone" | "web">("phone");
   const [startingCall, setStartingCall] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<AgentLanguage | "all">("all");
   const [formData, setFormData] = useState({
     from_number: "",
     to_number: "",
@@ -83,10 +84,13 @@ export default function CallsPage({ params }: CallsPageProps) {
     }
   };
 
-  const fetchAgents = async () => {
+  const fetchAgents = async (language?: AgentLanguage) => {
     setLoadingAgents(true);
     try {
-      const res = await fetch("/api/agents", { credentials: "include" });
+      const url = language 
+        ? `/api/agents?language=${language}` 
+        : "/api/agents";
+      const res = await fetch(url, { credentials: "include" });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -103,9 +107,22 @@ export default function CallsPage({ params }: CallsPageProps) {
   // Fetch agents when dialog opens
   useEffect(() => {
     if (createDialogOpen) {
+      // Reset language filter when dialog opens
+      setSelectedLanguage("all");
       fetchAgents();
     }
   }, [createDialogOpen]);
+
+  // Filter agents when language changes
+  const handleLanguageChange = (language: AgentLanguage | "all") => {
+    setSelectedLanguage(language);
+    setFormData({ ...formData, agent_id: "" }); // Reset agent selection
+    if (language === "all") {
+      fetchAgents();
+    } else {
+      fetchAgents(language);
+    }
+  };
 
   const handleCreatePhoneCall = async () => {
     try {
@@ -167,7 +184,6 @@ export default function CallsPage({ params }: CallsPageProps) {
       setFormData({ from_number: "", to_number: "", agent_id: "", metadata: {} });
       
       // Navigate to web call page with token
-      // Pass access_token via URL query parameter
       const callId = data.call_id;
       const accessToken = data.access_token;
       
@@ -229,25 +245,25 @@ export default function CallsPage({ params }: CallsPageProps) {
 
   return (
     <DashboardLayout locale={locale}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-            <p className="text-muted-foreground">{t("description")}</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("title")}</h1>
+            <p className="text-sm md:text-base text-muted-foreground">{t("description")}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchCalls} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              {tCommon("refresh")}
+            <Button variant="outline" size="icon" onClick={fetchCalls} disabled={loading} className="shrink-0">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="flex-1 sm:flex-initial">
                   <Plus className="h-4 w-4 mr-2" />
-                  {t("newCall")}
+                  <span className="hidden sm:inline">{t("newCall")}</span>
+                  <span className="sm:hidden">新建</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{t("createCall")}</DialogTitle>
                   <DialogDescription>{t("createCallDesc")}</DialogDescription>
@@ -255,13 +271,15 @@ export default function CallsPage({ params }: CallsPageProps) {
                 <div className="grid gap-4 py-4">
                   <Tabs value={callType} onValueChange={(v) => setCallType(v as "phone" | "web")}>
                     <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="phone">
-                        <Phone className="h-4 w-4 mr-2" />
-                        {t("phoneCall")}
+                      <TabsTrigger value="phone" className="text-xs md:text-sm">
+                        <Phone className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">{t("phoneCall")}</span>
+                        <span className="sm:hidden">电话</span>
                       </TabsTrigger>
-                      <TabsTrigger value="web">
-                        <Video className="h-4 w-4 mr-2" />
-                        {t("webCall")}
+                      <TabsTrigger value="web" className="text-xs md:text-sm">
+                        <Video className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">{t("webCall")}</span>
+                        <span className="sm:hidden">网络</span>
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="phone" className="space-y-4 mt-4">
@@ -312,6 +330,34 @@ export default function CallsPage({ params }: CallsPageProps) {
                       </div>
                     </TabsContent>
                     <TabsContent value="web" className="space-y-4 mt-4">
+                      {/* Language Filter */}
+                      <div className="grid gap-2">
+                        <Label className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          {t("selectLanguage")}
+                        </Label>
+                        <Select
+                          value={selectedLanguage}
+                          onValueChange={(value) => handleLanguageChange(value as AgentLanguage | "all")}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("selectLanguage")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              🌐 {t("allLanguages")}
+                            </SelectItem>
+                            {Object.entries(LANGUAGE_CONFIG).map(([code, config]) => (
+                              <SelectItem key={code} value={code}>
+                                {config.flag} {config.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">{t("languageFilterDesc")}</p>
+                      </div>
+
+                      {/* Agent Selection */}
                       <div className="grid gap-2">
                         <Label>{t("selectAgent")} *</Label>
                         {loadingAgents ? (
@@ -332,24 +378,37 @@ export default function CallsPage({ params }: CallsPageProps) {
                             <SelectContent>
                               {agents.map((agent) => (
                                 <SelectItem key={agent.agent_id} value={agent.agent_id}>
-                                  {agent.agent_name || agent.agent_id}
+                                  <div className="flex items-center gap-2">
+                                    {agent.agent_name || agent.agent_id}
+                                    {agent.language && (
+                                      <span className="text-xs text-muted-foreground">
+                                        ({LANGUAGE_CONFIG[agent.language]?.flag})
+                                      </span>
+                                    )}
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                          {selectedLanguage !== "all" 
+                            ? `${t("availableAgents")}: ${agents.length}`
+                            : t("webCallDesc")
+                          }
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">{t("webCallDesc")}</p>
                     </TabsContent>
                   </Tabs>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={startingCall}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={startingCall} className="w-full sm:w-auto">
                     {tCommon("cancel")}
                   </Button>
                   <Button 
                     onClick={callType === "phone" ? handleCreatePhoneCall : handleCreateWebCall}
                     disabled={startingCall || loadingAgents || agents.length === 0}
+                    className="w-full sm:w-auto"
                   >
                     {startingCall && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                     {callType === "phone" ? t("startCall") : t("startWebCall")}
@@ -361,9 +420,9 @@ export default function CallsPage({ params }: CallsPageProps) {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t("allCalls")}</CardTitle>
-            <CardDescription>{t("allCallsDesc")}</CardDescription>
+          <CardHeader className="pb-2 md:pb-4">
+            <CardTitle className="text-lg md:text-xl">{t("allCalls")}</CardTitle>
+            <CardDescription className="text-sm">{t("allCallsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -376,29 +435,37 @@ export default function CallsPage({ params }: CallsPageProps) {
                 <p>{tCommon("noData")}</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {calls.map((call) => (
                   <div
                     key={call.call_id}
-                    className="flex items-start justify-between rounded-lg border p-4"
+                    className="flex items-start justify-between rounded-lg border p-3 md:p-4"
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
                       {call.call_type === "phone_call" ? (
-                        <Phone className="h-5 w-5 text-muted-foreground mt-1" />
+                        <Phone className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                       ) : (
-                        <Video className="h-5 w-5 text-muted-foreground mt-1" />
+                        <Video className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                       )}
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{call.call_id}</p>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium text-sm md:text-base truncate">{call.call_id}</p>
                           {getStatusBadge(call.call_status)}
-                          <Badge variant="outline">{call.call_direction || t("outbound")}</Badge>
+                          <Badge variant="outline" className="text-xs">{call.call_direction || t("outbound")}</Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          {call.from_number && <span>{t("fromNumber")}: {call.from_number}</span>}
-                          {call.to_number && <span>{t("toNumber")}: {call.to_number}</span>}
+                        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
+                          {call.from_number && (
+                            <span className="truncate max-w-[150px]">
+                              {t("fromNumber")}: {call.from_number}
+                            </span>
+                          )}
+                          {call.to_number && (
+                            <span className="truncate max-w-[150px]">
+                              {t("toNumber")}: {call.to_number}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDate(call.started_at)}
@@ -406,15 +473,15 @@ export default function CallsPage({ params }: CallsPageProps) {
                           <span>{t("duration")}: {formatDuration(call.duration_ms)}</span>
                         </div>
                         {call.agent_id && (
-                          <Badge variant="secondary" className="mt-1">
+                          <Badge variant="secondary" className="mt-1 text-xs truncate max-w-[200px]">
                             Agent: {call.agent_id}
                           </Badge>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       {call.recording_url && (
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8" asChild>
                           <a href={call.recording_url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-4 w-4" />
                           </a>
@@ -422,7 +489,7 @@ export default function CallsPage({ params }: CallsPageProps) {
                       )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
+                          <Button variant="destructive" size="icon" className="h-8 w-8">
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>

@@ -102,7 +102,23 @@
     "agentNameRequired": "O nome do agente é obrigatório",
     "noLlmConfig": "Nenhuma configuração LLM disponível",
     "noLlmConfigDesc": "Por favor, crie primeiro uma configuração LLM ou certifique-se de que os agentes existentes tenham IDs LLM",
-    "selectVoice": "Selecionar voz"
+    "selectVoice": "Selecionar voz",
+    "language": "Idioma",
+    "selectLanguage": "Selecionar idioma",
+    "languageDesc": "Selecione o idioma principal do agente para filtragem e configurações de saudação",
+    "voiceName": "Nome da voz",
+    "voiceNamePlaceholder": "ex. Alice, Bob",
+    "voiceNameDesc": "Nome de exibição da voz para fácil identificação",
+    "voiceGender": "Gênero da voz",
+    "selectVoiceGender": "Selecionar gênero",
+    "male": "Masculino",
+    "female": "Feminino",
+    "style": "Estilo",
+    "stylePlaceholder": "ex. amigável, profissional",
+    "styleDesc": "Configurações de estilo de voz",
+    "startMessage": "Mensagem de boas-vindas",
+    "startMessagePlaceholder": "ex. Olá! Como posso ajudá-lo hoje?",
+    "startMessageDesc": "Mensagem de boas-vindas reproduzida automaticamente no início da chamada"
   },
   "calls": {
     "title": "Chamadas",
@@ -129,7 +145,13 @@
     "selectAgentPlaceholder": "Por favor selecione um agente IA",
     "noAgents": "Nenhum agente disponível",
     "callStarted": "Chamada iniciada",
-    "webCallFailed": "Falha ao criar chamada web"
+    "webCallFailed": "Falha ao criar chamada web",
+    "selectLanguage": "Selecionar idioma",
+    "languageFilter": "Filtro de idioma",
+    "languageFilterDesc": "Filtrar agentes disponíveis por idioma",
+    "allLanguages": "Todos os idiomas",
+    "availableAgents": "Agentes disponíveis",
+    "availableAgentsDesc": "Agentes que suportam o idioma selecionado"
   },
   "webCall": {
     "title": "Chamada Web",

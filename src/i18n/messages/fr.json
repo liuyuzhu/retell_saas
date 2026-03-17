@@ -99,10 +99,26 @@
     "editAgentDesc": "Mettre à jour la configuration de l'agent",
     "deleteConfirm": "Supprimer l'agent",
     "deleteConfirmDesc": "Êtes-vous sûr de vouloir supprimer cet agent ? Cette action est irréversible.",
-    "agentNameRequired": "Le nom de l'agent est obligatoire",
+    "agentNameRequired": "Le nom de l'agent est requis",
     "noLlmConfig": "Aucune configuration LLM disponible",
     "noLlmConfigDesc": "Veuillez d'abord créer une configuration LLM ou vous assurer que les agents existants ont des ID LLM",
-    "selectVoice": "Sélectionner une voix"
+    "selectVoice": "Sélectionner une voix",
+    "language": "Langue",
+    "selectLanguage": "Sélectionner la langue",
+    "languageDesc": "Sélectionnez la langue principale de l'agent pour le filtrage et les paramètres de salutation",
+    "voiceName": "Nom de la voix",
+    "voiceNamePlaceholder": "ex. Alice, Bob",
+    "voiceNameDesc": "Nom d'affichage de la voix pour une identification facile",
+    "voiceGender": "Genre de la voix",
+    "selectVoiceGender": "Sélectionner le genre",
+    "male": "Masculin",
+    "female": "Féminin",
+    "style": "Style",
+    "stylePlaceholder": "ex. amical, professionnel",
+    "styleDesc": "Paramètres de style vocal",
+    "startMessage": "Message de bienvenue",
+    "startMessagePlaceholder": "ex. Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+    "startMessageDesc": "Message de bienvenue joué automatiquement au début de l'appel"
   },
   "calls": {
     "title": "Appels",
@@ -129,7 +145,13 @@
     "selectAgentPlaceholder": "Veuillez sélectionner un agent IA",
     "noAgents": "Aucun agent disponible",
     "callStarted": "Appel démarré",
-    "webCallFailed": "Échec de la création de l'appel web"
+    "webCallFailed": "Échec de la création de l'appel web",
+    "selectLanguage": "Sélectionner la langue",
+    "languageFilter": "Filtre de langue",
+    "languageFilterDesc": "Filtrer les agents disponibles par langue",
+    "allLanguages": "Toutes les langues",
+    "availableAgents": "Agents disponibles",
+    "availableAgentsDesc": "Agents prenant en charge la langue sélectionnée"
   },
   "webCall": {
     "title": "Appel web",

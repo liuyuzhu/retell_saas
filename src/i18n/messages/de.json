@@ -102,7 +102,23 @@
     "agentNameRequired": "Agentenname ist erforderlich",
     "noLlmConfig": "Keine LLM-Konfiguration verfügbar",
     "noLlmConfigDesc": "Bitte erstellen Sie zuerst eine LLM-Konfiguration oder stellen Sie sicher, dass bestehende Agenten LLM-IDs haben",
-    "selectVoice": "Stimme auswählen"
+    "selectVoice": "Stimme auswählen",
+    "language": "Sprache",
+    "selectLanguage": "Sprache auswählen",
+    "languageDesc": "Wählen Sie die Hauptsprache des Agenten für Filterung und Begrüßungseinstellungen",
+    "voiceName": "Stimmenname",
+    "voiceNamePlaceholder": "z.B. Alice, Bob",
+    "voiceNameDesc": "Anzeigename der Stimme zur einfachen Identifikation",
+    "voiceGender": "Stimmengeschlecht",
+    "selectVoiceGender": "Geschlecht auswählen",
+    "male": "Männlich",
+    "female": "Weiblich",
+    "style": "Stil",
+    "stylePlaceholder": "z.B. freundlich, professionell",
+    "styleDesc": "Stimmstil-Einstellungen",
+    "startMessage": "Begrüßungsnachricht",
+    "startMessagePlaceholder": "z.B. Hallo! Wie kann ich Ihnen heute helfen?",
+    "startMessageDesc": "Automatisch abgespielte Begrüßung bei Anrufbeginn"
   },
   "calls": {
     "title": "Anrufe",
@@ -129,7 +145,13 @@
     "selectAgentPlaceholder": "Bitte wählen Sie einen KI-Agenten",
     "noAgents": "Keine Agenten verfügbar",
     "callStarted": "Anruf gestartet",
-    "webCallFailed": "Webanruf konnte nicht erstellt werden"
+    "webCallFailed": "Webanruf konnte nicht erstellt werden",
+    "selectLanguage": "Sprache auswählen",
+    "languageFilter": "Sprachfilter",
+    "languageFilterDesc": "Verfügbare Agenten nach Sprache filtern",
+    "allLanguages": "Alle Sprachen",
+    "availableAgents": "Verfügbare Agenten",
+    "availableAgentsDesc": "Agenten, die die ausgewählte Sprache unterstützen"
   },
   "webCall": {
     "title": "Webanruf",

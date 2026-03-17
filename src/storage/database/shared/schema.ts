@@ -98,6 +98,30 @@ export const userPhoneNumbers = pgTable(
   ]
 );
 
+// Agent extended info - Agent 扩展信息表（存储语言、风格等自定义字段）
+export const agentInfo = pgTable(
+  "agent_info",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    agentId: varchar("agent_id", { length: 255 }).notNull().unique(), // Retell AI agent_id
+    language: varchar("language", { length: 10 }).notNull().default("zh-CN"), // 'zh-CN' or 'en-US'
+    voiceName: varchar("voice_name", { length: 128 }), // Display name for the voice
+    voiceGender: varchar("voice_gender", { length: 10 }), // 'male' or 'female'
+    style: varchar("style", { length: 255 }), // Agent style description
+    startMessage: text("start_message"), // Opening message for the agent
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }),
+  },
+  (table) => [
+    index("agent_info_agent_id_idx").on(table.agentId),
+    index("agent_info_language_idx").on(table.language),
+  ]
+);
+
 // Zod schemas for validation
 const { createInsertSchema: createCoercedInsertSchema } = createSchemaFactory({
   coerce: { date: true },
@@ -139,6 +163,26 @@ export const insertUserPhoneNumberSchema = createCoercedInsertSchema(userPhoneNu
   phoneNumber: true,
 });
 
+// Agent info schema
+export const insertAgentInfoSchema = createCoercedInsertSchema(agentInfo).pick({
+  agentId: true,
+  language: true,
+  voiceName: true,
+  voiceGender: true,
+  style: true,
+  startMessage: true,
+});
+
+export const updateAgentInfoSchema = createCoercedInsertSchema(agentInfo)
+  .pick({
+    language: true,
+    voiceName: true,
+    voiceGender: true,
+    style: true,
+    startMessage: true,
+  })
+  .partial();
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -146,3 +190,6 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type UserAgent = typeof userAgents.$inferSelect;
 export type UserPhoneNumber = typeof userPhoneNumbers.$inferSelect;
+export type AgentInfo = typeof agentInfo.$inferSelect;
+export type InsertAgentInfo = z.infer<typeof insertAgentInfoSchema>;
+export type UpdateAgentInfo = z.infer<typeof updateAgentInfoSchema>;

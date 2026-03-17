@@ -28,10 +28,23 @@ export interface UpdatePhoneNumberRequest {
 
 // ==================== Agents ====================
 
+// Supported languages for agents
+export type AgentLanguage = 'zh-CN' | 'en-US';
+
+// Language display configuration
+export const LANGUAGE_CONFIG: Record<AgentLanguage, { name: string; flag: string; code: string }> = {
+  'zh-CN': { name: '中文', flag: '🇨🇳', code: 'zh-CN' },
+  'en-US': { name: 'English', flag: '🇺🇸', code: 'en-US' },
+};
+
 export interface Agent {
   agent_id: string;
   agent_name?: string;
   voice_id?: string;
+  language?: AgentLanguage; // Language tag for the agent
+  voice_name?: string; // Display name for the voice
+  voice_gender?: 'male' | 'female';
+  style?: string; // Agent style description
   response_engine?: ResponseEngine;
   ambient_noise?: string;
   enable_backchannel?: boolean;
@@ -97,6 +110,10 @@ export interface ConversationFlow {
 export interface CreateAgentRequest {
   agent_name?: string;
   voice_id?: string;
+  language?: AgentLanguage;
+  voice_name?: string;
+  voice_gender?: 'male' | 'female';
+  style?: string;
   response_engine?: ResponseEngine;
   ambient_noise?: string;
   enable_backchannel?: boolean;

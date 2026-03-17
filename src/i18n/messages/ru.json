@@ -102,7 +102,23 @@
     "agentNameRequired": "Имя агента обязательно",
     "noLlmConfig": "Нет доступной конфигурации LLM",
     "noLlmConfigDesc": "Пожалуйста, сначала создайте конфигурацию LLM или убедитесь, что существующие агенты имеют ID LLM",
-    "selectVoice": "Выбрать голос"
+    "selectVoice": "Выбрать голос",
+    "language": "Язык",
+    "selectLanguage": "Выбрать язык",
+    "languageDesc": "Выберите основной язык агента для фильтрации и настроек приветствия",
+    "voiceName": "Имя голоса",
+    "voiceNamePlaceholder": "напр. Алиса, Борис",
+    "voiceNameDesc": "Отображаемое имя голоса для легкой идентификации",
+    "voiceGender": "Пол голоса",
+    "selectVoiceGender": "Выбрать пол",
+    "male": "Мужской",
+    "female": "Женский",
+    "style": "Стиль",
+    "stylePlaceholder": "напр. дружелюбный, профессиональный",
+    "styleDesc": "Настройки стиля голоса",
+    "startMessage": "Приветственное сообщение",
+    "startMessagePlaceholder": "напр. Здравствуйте! Чем могу помочь?",
+    "startMessageDesc": "Приветственное сообщение, воспроизводимое автоматически в начале звонка"
   },
   "calls": {
     "title": "Звонки",
@@ -129,7 +145,13 @@
     "selectAgentPlaceholder": "Выберите ИИ-агента",
     "noAgents": "Нет доступных агентов",
     "callStarted": "Звонок начат",
-    "webCallFailed": "Не удалось создать веб-звонок"
+    "webCallFailed": "Не удалось создать веб-звонок",
+    "selectLanguage": "Выбрать язык",
+    "languageFilter": "Фильтр по языку",
+    "languageFilterDesc": "Фильтровать доступных агентов по языку",
+    "allLanguages": "Все языки",
+    "availableAgents": "Доступные агенты",
+    "availableAgentsDesc": "Агенты, поддерживающие выбранный язык"
   },
   "webCall": {
     "title": "Веб-звонок",

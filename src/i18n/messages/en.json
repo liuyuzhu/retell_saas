@@ -102,7 +102,23 @@
     "agentNameRequired": "Agent name is required",
     "noLlmConfig": "No LLM Configuration Available",
     "noLlmConfigDesc": "Please create an LLM configuration first or ensure existing agents have LLM IDs",
-    "selectVoice": "Select Voice"
+    "selectVoice": "Select Voice",
+    "language": "Language",
+    "selectLanguage": "Select Language",
+    "languageDesc": "Select the agent's primary language for filtering and greeting settings",
+    "voiceName": "Voice Name",
+    "voiceNamePlaceholder": "e.g., Alice, Bob",
+    "voiceNameDesc": "Display name for the voice for easy identification",
+    "voiceGender": "Voice Gender",
+    "selectVoiceGender": "Select Gender",
+    "male": "Male",
+    "female": "Female",
+    "style": "Style",
+    "stylePlaceholder": "e.g., friendly, professional",
+    "styleDesc": "Voice style settings",
+    "startMessage": "Greeting Message",
+    "startMessagePlaceholder": "e.g., Hello! How can I help you today?",
+    "startMessageDesc": "Automatically played greeting when the call starts"
   },
   "calls": {
     "title": "Calls",
@@ -129,7 +145,13 @@
     "selectAgentPlaceholder": "Please select an AI agent",
     "noAgents": "No agents available, please create one first",
     "callStarted": "Call started",
-    "webCallFailed": "Failed to create web call"
+    "webCallFailed": "Failed to create web call",
+    "selectLanguage": "Select Language",
+    "languageFilter": "Language Filter",
+    "languageFilterDesc": "Filter available agents by language",
+    "allLanguages": "All Languages",
+    "availableAgents": "Available Agents",
+    "availableAgentsDesc": "Agents supporting the selected language"
   },
   "webCall": {
     "title": "Web Call",
