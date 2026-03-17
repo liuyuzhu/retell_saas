@@ -119,7 +119,8 @@
     "startMessage": "Message de bienvenue",
     "startMessagePlaceholder": "ex. Bonjour ! Comment puis-je vous aider aujourd'hui ?",
     "startMessageDesc": "Message de bienvenue joué automatiquement au début de l'appel",
-    "allLanguages": "Toutes les langues"
+    "allLanguages": "Toutes les langues",
+    "unspecifiedLanguage": "Non spécifié"
   },
   "calls": {
     "title": "Appels",

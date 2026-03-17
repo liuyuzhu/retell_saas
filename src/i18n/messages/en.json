@@ -119,7 +119,8 @@
     "startMessage": "Greeting Message",
     "startMessagePlaceholder": "e.g., Hello! How can I help you today?",
     "startMessageDesc": "Automatically played greeting when the call starts",
-    "allLanguages": "All Languages"
+    "allLanguages": "All Languages",
+    "unspecifiedLanguage": "Unspecified"
   },
   "calls": {
     "title": "Calls",

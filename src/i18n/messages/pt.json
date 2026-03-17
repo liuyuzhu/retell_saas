@@ -119,7 +119,8 @@
     "startMessage": "Mensagem de boas-vindas",
     "startMessagePlaceholder": "ex. Olá! Como posso ajudá-lo hoje?",
     "startMessageDesc": "Mensagem de boas-vindas reproduzida automaticamente no início da chamada",
-    "allLanguages": "Todos os idiomas"
+    "allLanguages": "Todos os idiomas",
+    "unspecifiedLanguage": "Não especificado"
   },
   "calls": {
     "title": "Chamadas",

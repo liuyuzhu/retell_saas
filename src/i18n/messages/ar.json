@@ -119,7 +119,8 @@
     "startMessage": "رسالة الترحيب",
     "startMessagePlaceholder": "مثال: مرحباً! كيف يمكنني مساعدتك اليوم؟",
     "startMessageDesc": "رسالة ترحيب تُلعب تلقائياً عند بدء المكالمة",
-    "allLanguages": "جميع اللغات"
+    "allLanguages": "جميع اللغات",
+    "unspecifiedLanguage": "غير محدد"
   },
   "calls": {
     "title": "المكالمات",

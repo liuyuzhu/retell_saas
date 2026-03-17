@@ -31,8 +31,8 @@ export interface UpdatePhoneNumberRequest {
 // Supported languages for agents (use 'all' for filtering/creation when language is not specified)
 export type AgentLanguage = 'zh-CN' | 'en-US';
 
-// Language filter type (includes 'all' option for filtering and creation)
-export type LanguageFilter = AgentLanguage | 'all';
+// Language filter type (includes 'all' option for filtering and 'unspecified' for agents without language)
+export type LanguageFilter = AgentLanguage | 'all' | 'unspecified';
 
 // Language display configuration
 export const LANGUAGE_CONFIG: Record<AgentLanguage, { name: string; flag: string; code: string }> = {
