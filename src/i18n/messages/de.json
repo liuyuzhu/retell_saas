@@ -148,7 +148,13 @@
     "readyTip": "Klicken Sie auf \"Anruf starten\", um mit dem KI-Agenten zu sprechen",
     "connectingTip": "Verbindung wird hergestellt...",
     "connectedTip": "Anruf läuft. Mikrofon zum Stummschalten, Auflegen zum Beenden.",
-    "endedTip": "Anrufdauer: {duration}"
+    "endedTip": "Anrufdauer: {duration}",
+    "agent": "KI-Agent",
+    "you": "Sie",
+    "speaking": "Spricht",
+    "idle": "Bereit",
+    "transcript": "Live-Transkript",
+    "transcriptWaiting": "Warten auf Gespräch..."
   },
   "voices": {
     "title": "Stimmen",

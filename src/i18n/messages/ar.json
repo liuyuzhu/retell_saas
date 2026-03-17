@@ -148,7 +148,13 @@
     "readyTip": "انقر على \"بدء المكالمة\" للبدء في التحدث مع وكيل الذكاء الاصطناعي",
     "connectingTip": "جاري إنشاء الاتصال...",
     "connectedTip": "المكالمة قيد التنفيذ.",
-    "endedTip": "المدة: {duration}"
+    "endedTip": "المدة: {duration}",
+    "agent": "وكيل الذكاء الاصطناعي",
+    "you": "أنت",
+    "speaking": "يتحدث",
+    "idle": "في الانتظار",
+    "transcript": "النص المباشر",
+    "transcriptWaiting": "في انتظار المحادثة..."
   },
   "voices": {
     "title": "الأصوات",

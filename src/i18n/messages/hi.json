@@ -148,7 +148,13 @@
     "readyTip": "AI एजेंट से बात करने के लिए \"कॉल शुरू करें\" पर क्लिक करें",
     "connectingTip": "कनेक्शन स्थापित हो रहा है...",
     "connectedTip": "कॉल जारी है।",
-    "endedTip": "अवधि: {duration}"
+    "endedTip": "अवधि: {duration}",
+    "agent": "AI एजेंट",
+    "you": "आप",
+    "speaking": "बोल रहा है",
+    "idle": "निष्क्रिय",
+    "transcript": "लाइव ट्रांसक्रिप्ट",
+    "transcriptWaiting": "बातचीत की प्रतीक्षा में..."
   },
   "voices": {
     "title": "आवाज़ें",

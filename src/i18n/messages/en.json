@@ -148,7 +148,13 @@
     "readyTip": "Click \"Start Call\" to begin conversation with AI agent",
     "connectingTip": "Establishing connection, please wait...",
     "connectedTip": "Call in progress. Click microphone to mute, or hang up to end the call.",
-    "endedTip": "Call duration: {duration}"
+    "endedTip": "Call duration: {duration}",
+    "agent": "AI Agent",
+    "you": "You",
+    "speaking": "Speaking",
+    "idle": "Idle",
+    "transcript": "Live Transcript",
+    "transcriptWaiting": "Waiting for conversation..."
   },
   "voices": {
     "title": "Voices",

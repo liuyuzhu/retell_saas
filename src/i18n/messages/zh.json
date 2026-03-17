@@ -148,7 +148,13 @@
     "readyTip": "点击「开始通话」按钮开始与 AI 代理对话",
     "connectingTip": "正在建立连接，请稍候...",
     "connectedTip": "通话进行中，您可以点击麦克风按钮静音，或点击挂断按钮结束通话",
-    "endedTip": "通话时长: {duration}"
+    "endedTip": "通话时长: {duration}",
+    "agent": "AI 助手",
+    "you": "您",
+    "speaking": "说话中",
+    "idle": "空闲",
+    "transcript": "实时字幕",
+    "transcriptWaiting": "等待对话开始..."
   },
   "voices": {
     "title": "语音库",

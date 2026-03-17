@@ -4,17 +4,26 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
+import { Phone, PhoneOff, Mic, MicOff, Bot, User, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type CallStatus = "ready" | "connecting" | "connected" | "ended" | "error";
-type AgentStatus = "idle" | "listening" | "speaking";
+type SpeakerStatus = "idle" | "speaking";
 
 interface WebCallPageProps {
   params: Promise<{ locale: string; callId: string }>;
+}
+
+interface TranscriptMessage {
+  id: number;
+  speaker: "agent" | "user";
+  text: string;
+  timestamp: number;
+  isFinal: boolean;
 }
 
 interface RetellWebClient {
@@ -26,7 +35,15 @@ interface RetellWebClient {
   startAudioPlayback?(): Promise<void>;
 }
 
-// Declare global types for SDK
+interface RetellUpdateEvent {
+  event_type: "update";
+  transcript: {
+    text: string;
+    is_final: boolean;
+    role: "agent" | "user";
+  };
+}
+
 declare global {
   interface Window {
     retellClientJsSdk?: {
@@ -39,16 +56,21 @@ export default function WebCallPage({ params }: WebCallPageProps) {
   const [locale, setLocale] = useState<string>("zh");
   const [callId, setCallId] = useState<string>("");
   const [callStatus, setCallStatus] = useState<CallStatus>("ready");
-  const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
+  const [agentStatus, setAgentStatus] = useState<SpeakerStatus>("idle");
+  const [userStatus, setUserStatus] = useState<SpeakerStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [transcripts, setTranscripts] = useState<TranscriptMessage[]>([]);
+  const [currentText, setCurrentText] = useState<{ agent: string; user: string }>({ agent: "", user: "" });
 
   const clientRef = useRef<RetellWebClient | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const transcriptIdRef = useRef(0);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -68,13 +90,11 @@ export default function WebCallPage({ params }: WebCallPageProps) {
   useEffect(() => {
     if (!isClient || sdkLoaded) return;
 
-    // Check if already loaded
     if (window.retellClientJsSdk?.RetellWebClient) {
       setSdkLoaded(true);
       return;
     }
 
-    // Listen for SDK ready event
     const handleReady = () => {
       if (window.retellClientJsSdk?.RetellWebClient) {
         setSdkLoaded(true);
@@ -93,13 +113,11 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     window.addEventListener("retell-sdk-ready", handleReady);
     window.addEventListener("retell-sdk-error", handleError as EventListener);
 
-    // Create and inject module script
     const script = document.createElement("script");
     script.type = "module";
     script.src = "/sdk/retell-loader.mjs";
     document.head.appendChild(script);
 
-    // Cleanup
     return () => {
       window.removeEventListener("retell-sdk-ready", handleReady);
       window.removeEventListener("retell-sdk-error", handleError as EventListener);
@@ -119,6 +137,16 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     }
   }, [searchParams, isClient]);
 
+  // Auto-scroll transcripts
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [transcripts, currentText]);
+
   // Request microphone permission and start call
   const handleStartCall = useCallback(async () => {
     if (!accessToken) {
@@ -135,9 +163,10 @@ export default function WebCallPage({ params }: WebCallPageProps) {
 
     setCallStatus("connecting");
     setError(null);
+    setTranscripts([]);
+    setCurrentText({ agent: "", user: "" });
 
     try {
-      // Request microphone permission first
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop());
@@ -148,11 +177,9 @@ export default function WebCallPage({ params }: WebCallPageProps) {
         return;
       }
 
-      // Create RetellWebClient instance
       const client = new window.retellClientJsSdk!.RetellWebClient();
       clientRef.current = client;
 
-      // Set up event handlers
       client.on("call_started", () => {
         console.log("Call started");
         setCallStatus("connected");
@@ -168,6 +195,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       client.on("call_ended", () => {
         console.log("Call ended");
         setCallStatus("ended");
+        setAgentStatus("idle");
+        setUserStatus("idle");
         stopDurationTimer();
         clientRef.current = null;
       });
@@ -185,14 +214,64 @@ export default function WebCallPage({ params }: WebCallPageProps) {
       });
 
       client.on("agent_stop_talking", () => {
-        setAgentStatus("listening");
+        setAgentStatus("idle");
       });
 
-      client.on("update", (update: unknown) => {
-        console.log("Update:", update);
+      // Handle transcript updates
+      client.on("update", (data: unknown) => {
+        try {
+          const update = data as RetellUpdateEvent;
+          if (update.event_type === "update" && update.transcript) {
+            const { text, is_final, role } = update.transcript;
+            
+            if (text) {
+              if (role === "agent") {
+                // Track agent speaking status
+                if (text && !is_final) {
+                  setAgentStatus("speaking");
+                }
+                
+                if (is_final) {
+                  // Add to transcripts
+                  setTranscripts(prev => [...prev, {
+                    id: ++transcriptIdRef.current,
+                    speaker: "agent",
+                    text: text,
+                    timestamp: Date.now(),
+                    isFinal: true
+                  }]);
+                  setCurrentText(prev => ({ ...prev, agent: "" }));
+                } else {
+                  // Update current text
+                  setCurrentText(prev => ({ ...prev, agent: text }));
+                }
+              } else if (role === "user") {
+                // Track user speaking status
+                if (text && !is_final) {
+                  setUserStatus("speaking");
+                }
+                
+                if (is_final) {
+                  setTranscripts(prev => [...prev, {
+                    id: ++transcriptIdRef.current,
+                    speaker: "user",
+                    text: text,
+                    timestamp: Date.now(),
+                    isFinal: true
+                  }]);
+                  setCurrentText(prev => ({ ...prev, user: "" }));
+                  setUserStatus("idle");
+                } else {
+                  setCurrentText(prev => ({ ...prev, user: text }));
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing update:", e, data);
+        }
       });
 
-      // Start the call
       await client.startCall({
         accessToken,
         emitRawAudioSamples: false,
@@ -239,6 +318,7 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     } else {
       clientRef.current.mute();
       setIsMuted(true);
+      setUserStatus("idle");
     }
   };
 
@@ -249,6 +329,8 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     }
     stopDurationTimer();
     setCallStatus("ended");
+    setAgentStatus("idle");
+    setUserStatus("idle");
   };
 
   const handleBack = () => {
@@ -261,163 +343,247 @@ export default function WebCallPage({ params }: WebCallPageProps) {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const getStatusColor = () => {
+  const getStatusConfig = () => {
     switch (callStatus) {
-      case "ready": return "text-blue-500";
-      case "connecting": return "text-yellow-500";
-      case "connected": return "text-green-500";
-      case "ended": return "text-gray-500";
-      case "error": return "text-red-500";
-      default: return "text-gray-500";
-    }
-  };
-
-  const getStatusText = () => {
-    switch (callStatus) {
-      case "ready": return t("ready");
-      case "connecting": return t("connecting");
-      case "connected": return t("connected");
-      case "ended": return t("ended");
-      case "error": return t("error");
-      default: return "";
-    }
-  };
-
-  const getAgentStatusText = () => {
-    switch (agentStatus) {
-      case "idle": return t("agentIdle");
-      case "listening": return t("agentListening");
-      case "speaking": return t("agentSpeaking");
-      default: return "";
+      case "ready": return { color: "text-blue-500", bg: "bg-blue-500/10", text: t("ready") };
+      case "connecting": return { color: "text-yellow-500", bg: "bg-yellow-500/10", text: t("connecting") };
+      case "connected": return { color: "text-green-500", bg: "bg-green-500/10", text: t("connected") };
+      case "ended": return { color: "text-gray-500", bg: "bg-gray-500/10", text: t("ended") };
+      case "error": return { color: "text-red-500", bg: "bg-red-500/10", text: t("error") };
+      default: return { color: "text-gray-500", bg: "bg-gray-500/10", text: "" };
     }
   };
 
   return (
     <DashboardLayout locale={locale}>
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <Card className="w-full max-w-md p-8 shadow-xl">
-          <div className="flex flex-col items-center space-y-8">
-            {/* Status */}
-            <div className="text-center space-y-2">
-              <div className={`text-lg font-medium ${getStatusColor()}`}>
+      <div className="min-h-[calc(100vh-4rem)] flex flex-col max-w-2xl mx-auto p-4">
+        {/* Header */}
+        <Card className="p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${
+                callStatus === "connected" ? "bg-green-500 animate-pulse" :
+                callStatus === "connecting" ? "bg-yellow-500 animate-pulse" :
+                callStatus === "ready" ? "bg-blue-500" :
+                callStatus === "error" ? "bg-red-500" : "bg-gray-400"
+              }`} />
+              <span className={`font-medium ${getStatusConfig().color}`}>
                 {(callStatus === "connecting" || !sdkLoaded) && (
-                  <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                  <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                 )}
-                {!sdkLoaded && callStatus === "ready" ? "Loading SDK..." : getStatusText()}
-              </div>
-              {callStatus === "connected" && (
-                <div className="text-4xl font-mono font-bold text-foreground">
-                  {formatDuration(duration)}
-                </div>
-              )}
+                {!sdkLoaded && callStatus === "ready" ? "Loading SDK..." : getStatusConfig().text}
+              </span>
             </div>
-
-            {/* Agent Avatar */}
-            <div className="relative">
-              <div
-                className={`w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300 ${
-                  agentStatus === "speaking"
-                    ? "ring-4 ring-primary/30 scale-105"
-                    : agentStatus === "listening"
-                    ? "ring-2 ring-primary/20"
-                    : ""
-                }`}
-              >
-                <Volume2
-                  className={`h-12 w-12 text-primary ${
-                    agentStatus === "speaking" ? "animate-pulse" : ""
-                  }`}
-                />
-              </div>
-              {callStatus === "connected" && (
-                <Badge
-                  variant={agentStatus === "speaking" ? "default" : "secondary"}
-                  className="absolute -bottom-2 left-1/2 -translate-x-1/2"
-                >
-                  {getAgentStatusText()}
-                </Badge>
-              )}
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-lg w-full">
-                {error}
-              </div>
-            )}
-
-            {/* Call ID */}
-            <div className="text-xs text-muted-foreground font-mono">
-              {t("callId")}: {callId.slice(0, 20)}...
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-6">
-              {callStatus === "ready" && accessToken && sdkLoaded && (
-                <Button size="lg" onClick={handleStartCall} className="px-8">
-                  <Phone className="h-5 w-5 mr-2" />
-                  {t("startCall")}
-                </Button>
-              )}
-
-              {callStatus === "connected" && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className={`rounded-full h-16 w-16 ${isMuted ? "bg-destructive/10" : ""}`}
-                    onClick={handleMute}
-                  >
-                    {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    className="rounded-full h-16 w-16"
-                    onClick={handleEndCall}
-                  >
-                    <PhoneOff className="h-6 w-6" />
-                  </Button>
-                </>
-              )}
-
-              {(callStatus === "ended" || callStatus === "error") && (
-                <Button onClick={handleBack}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  {t("backToCalls")}
-                </Button>
-              )}
-            </div>
-
-            {/* Mute Status */}
-            {callStatus === "connected" && isMuted && (
-              <div className="text-sm text-muted-foreground flex items-center gap-1">
-                <MicOff className="h-4 w-4" />
-                {t("muted")}
-              </div>
-            )}
-
-            {/* Tips */}
-            {callStatus === "ready" && sdkLoaded && (
-              <div className="text-sm text-muted-foreground text-center">
-                {t("readyTip")}
-              </div>
-            )}
-            {callStatus === "connecting" && (
-              <div className="text-sm text-muted-foreground text-center">
-                {t("connectingTip")}
-              </div>
-            )}
             {callStatus === "connected" && (
-              <div className="text-sm text-muted-foreground text-center">
-                {t("connectedTip")}
+              <div className="text-2xl font-mono font-bold text-foreground">
+                {formatDuration(duration)}
               </div>
             )}
-            {callStatus === "ended" && (
-              <div className="text-sm text-muted-foreground text-center">
-                {t("endedTip", { duration: formatDuration(duration) })}
+          </div>
+        </Card>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Voice Activity Indicators */}
+          {callStatus === "connected" && (
+            <Card className="p-4">
+              <div className="flex justify-around items-center">
+                {/* AI Agent */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    agentStatus === "speaking" 
+                      ? "bg-primary/20 scale-110 ring-4 ring-primary/30" 
+                      : "bg-muted"
+                  }`}>
+                    <Bot className={`h-10 w-10 ${
+                      agentStatus === "speaking" ? "text-primary animate-pulse" : "text-muted-foreground"
+                    }`} />
+                    {agentStatus === "speaking" && (
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                        {[1, 2, 3].map((i) => (
+                          <div 
+                            key={i} 
+                            className="w-1 bg-primary rounded-full animate-pulse"
+                            style={{ 
+                              height: `${8 + Math.random() * 8}px`,
+                              animationDelay: `${i * 0.1}s`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium">{t("agent")}</span>
+                  <Badge variant={agentStatus === "speaking" ? "default" : "secondary"} className="text-xs">
+                    {agentStatus === "speaking" ? t("speaking") : t("idle")}
+                  </Badge>
+                </div>
+
+                {/* Connection Line */}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className={`w-8 h-0.5 ${callStatus === "connected" ? "bg-green-500" : "bg-gray-300"}`} />
+                  <Volume2 className="h-4 w-4" />
+                  <div className={`w-8 h-0.5 ${callStatus === "connected" ? "bg-green-500" : "bg-gray-300"}`} />
+                </div>
+
+                {/* User */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    userStatus === "speaking" 
+                      ? "bg-blue-500/20 scale-110 ring-4 ring-blue-500/30" 
+                      : isMuted ? "bg-red-500/10" : "bg-muted"
+                  }`}>
+                    {isMuted ? (
+                      <MicOff className="h-10 w-10 text-red-500" />
+                    ) : (
+                      <User className={`h-10 w-10 ${
+                        userStatus === "speaking" ? "text-blue-500 animate-pulse" : "text-muted-foreground"
+                      }`} />
+                    )}
+                    {userStatus === "speaking" && !isMuted && (
+                      <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                        {[1, 2, 3].map((i) => (
+                          <div 
+                            key={i} 
+                            className="w-1 bg-blue-500 rounded-full animate-pulse"
+                            style={{ 
+                              height: `${8 + Math.random() * 8}px`,
+                              animationDelay: `${i * 0.15}s`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium">{t("you")}</span>
+                  <Badge variant={isMuted ? "destructive" : userStatus === "speaking" ? "default" : "secondary"} className="text-xs">
+                    {isMuted ? t("muted") : userStatus === "speaking" ? t("speaking") : t("idle")}
+                  </Badge>
+                </div>
               </div>
+            </Card>
+          )}
+
+          {/* Real-time Transcripts */}
+          {(callStatus === "connected" || transcripts.length > 0) && (
+            <Card className="flex-1 min-h-[200px] flex flex-col">
+              <div className="p-3 border-b flex items-center gap-2">
+                <Volume2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{t("transcript")}</span>
+              </div>
+              <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
+                {transcripts.length === 0 && !currentText.agent && !currentText.user ? (
+                  <div className="text-sm text-muted-foreground text-center py-8">
+                    {t("transcriptWaiting")}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {transcripts.map((msg) => (
+                      <div 
+                        key={msg.id} 
+                        className={`flex gap-2 ${msg.speaker === "user" ? "flex-row-reverse" : ""}`}
+                      >
+                        <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                          msg.speaker === "agent" ? "bg-primary/10" : "bg-blue-500/10"
+                        }`}>
+                          {msg.speaker === "agent" ? (
+                            <Bot className="h-3 w-3 text-primary" />
+                          ) : (
+                            <User className="h-3 w-3 text-blue-500" />
+                          )}
+                        </div>
+                        <div className={`rounded-lg px-3 py-2 max-w-[80%] ${
+                          msg.speaker === "agent" 
+                            ? "bg-muted text-foreground" 
+                            : "bg-blue-500/10 text-foreground"
+                        }`}>
+                          <p className="text-sm">{msg.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Current typing text */}
+                    {currentText.agent && (
+                      <div className="flex gap-2">
+                        <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-primary/10">
+                          <Bot className="h-3 w-3 text-primary" />
+                        </div>
+                        <div className="rounded-lg px-3 py-2 bg-muted/50">
+                          <p className="text-sm text-muted-foreground">{currentText.agent}</p>
+                        </div>
+                      </div>
+                    )}
+                    {currentText.user && (
+                      <div className="flex gap-2 flex-row-reverse">
+                        <div className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-blue-500/10">
+                          <User className="h-3 w-3 text-blue-500" />
+                        </div>
+                        <div className="rounded-lg px-3 py-2 bg-blue-500/5">
+                          <p className="text-sm text-muted-foreground">{currentText.user}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </Card>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-sm text-destructive text-center bg-destructive/10 p-4 rounded-lg">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <Card className="p-4 mt-4">
+          <div className="flex items-center justify-center gap-4">
+            {/* Ready state */}
+            {callStatus === "ready" && sdkLoaded && accessToken && (
+              <Button size="lg" onClick={handleStartCall} className="px-8 gap-2">
+                <Phone className="h-5 w-5" />
+                {t("startCall")}
+              </Button>
             )}
+
+            {/* Connected state */}
+            {callStatus === "connected" && (
+              <>
+                <Button
+                  variant={isMuted ? "destructive" : "outline"}
+                  size="lg"
+                  className="rounded-full h-14 w-14"
+                  onClick={handleMute}
+                >
+                  {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="rounded-full h-14 w-14"
+                  onClick={handleEndCall}
+                >
+                  <PhoneOff className="h-6 w-6" />
+                </Button>
+              </>
+            )}
+
+            {/* Ended or Error state */}
+            {(callStatus === "ended" || callStatus === "error") && (
+              <Button onClick={handleBack} className="gap-2">
+                <Phone className="h-4 w-4" />
+                {t("backToCalls")}
+              </Button>
+            )}
+          </div>
+
+          {/* Tips */}
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            {callStatus === "ready" && sdkLoaded && t("readyTip")}
+            {callStatus === "connecting" && t("connectingTip")}
+            {callStatus === "ended" && t("endedTip", { duration: formatDuration(duration) })}
           </div>
         </Card>
       </div>

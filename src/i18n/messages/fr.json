@@ -148,7 +148,13 @@
     "readyTip": "Cliquez sur \"Démarrer l'appel\" pour commencer à parler avec l'agent IA",
     "connectingTip": "Établissement de la connexion...",
     "connectedTip": "Appel en cours. Micro pour couper, raccrocher pour terminer.",
-    "endedTip": "Durée de l'appel: {duration}"
+    "endedTip": "Durée de l'appel: {duration}",
+    "agent": "Agent IA",
+    "you": "Vous",
+    "speaking": "Parle",
+    "idle": "Inactif",
+    "transcript": "Transcription en direct",
+    "transcriptWaiting": "En attente de conversation..."
   },
   "voices": {
     "title": "Voix",
