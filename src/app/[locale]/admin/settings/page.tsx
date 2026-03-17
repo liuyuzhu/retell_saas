@@ -86,7 +86,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
   const fetchConfigs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/config");
+      const res = await fetch("/api/admin/config", { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
@@ -115,6 +115,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
       const res = await fetch("/api/admin/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({
           configs: [{ config_key: key, config_value: value }],
         }),
@@ -146,6 +147,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
       const res = await fetch("/api/admin/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({ configs: configsToUpdate }),
       });
 
@@ -174,6 +176,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
       const res = await fetch("/api/admin/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(newConfig),
       });
 
@@ -204,6 +207,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
     try {
       const res = await fetch(`/api/admin/config/${key}`, {
         method: "DELETE",
+        credentials: 'include',
       });
 
       const data = await res.json();

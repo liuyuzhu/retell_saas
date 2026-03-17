@@ -85,7 +85,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
     if (!userId) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/users/${userId}`);
+      const res = await fetch(`/api/admin/users/${userId}`, { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
@@ -119,7 +119,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents");
+      const res = await fetch("/api/agents", { credentials: 'include' });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -129,7 +129,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
 
   const fetchPhoneNumbers = async () => {
     try {
-      const res = await fetch("/api/phone-numbers");
+      const res = await fetch("/api/phone-numbers", { credentials: 'include' });
       const data = await res.json();
       setPhoneNumbers(data.data || []);
     } catch (error) {
@@ -140,7 +140,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
   const fetchCallRecords = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`/api/admin/users/${userId}/calls`);
+      const res = await fetch(`/api/admin/users/${userId}/calls`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setCallRecords(data.data || []);
@@ -184,6 +184,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(updateData),
       });
 

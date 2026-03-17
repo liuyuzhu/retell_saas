@@ -43,10 +43,6 @@ export async function setAuthCookie(token: string) {
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/',
-    // For development, ensure cookie is sent
-    ...(process.env.NODE_ENV !== 'production' && {
-      sameSite: 'strict' as const,
-    }),
   });
 }
 

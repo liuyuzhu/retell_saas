@@ -95,7 +95,7 @@ export default function UsersPage({ params }: UsersPageProps) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/users");
+      const res = await fetch("/api/admin/users", { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
@@ -116,7 +116,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents");
+      const res = await fetch("/api/agents", { credentials: 'include' });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -126,7 +126,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   const fetchPhoneNumbers = async () => {
     try {
-      const res = await fetch("/api/phone-numbers");
+      const res = await fetch("/api/phone-numbers", { credentials: 'include' });
       const data = await res.json();
       setPhoneNumbers(data.data || []);
     } catch (error) {
@@ -156,6 +156,7 @@ export default function UsersPage({ params }: UsersPageProps) {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -185,6 +186,7 @@ export default function UsersPage({ params }: UsersPageProps) {
       const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify({
           name: formData.name,
           phone: formData.phone,
@@ -216,6 +218,7 @@ export default function UsersPage({ params }: UsersPageProps) {
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: "DELETE",
+        credentials: 'include',
       });
 
       const data = await res.json();
