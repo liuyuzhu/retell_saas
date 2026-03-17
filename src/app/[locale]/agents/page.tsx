@@ -35,7 +35,7 @@ import { toast } from "sonner";
 import { Bot, Plus, Trash2, Edit, RefreshCw, Loader2, MoreVertical, Globe, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Agent, Voice, AgentLanguage, LanguageFilter, LANGUAGE_CONFIG, AVAILABLE_LANGUAGES } from "@/lib/retell-types";
+import { Agent, Voice, AgentLanguage, LanguageFilter, LANGUAGE_CONFIG, AVAILABLE_LANGUAGES, ALL_LANGUAGES_OPTION } from "@/lib/retell-types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +50,7 @@ interface AgentsPageProps {
 interface AgentFormData {
   agent_name: string;
   voice_id: string;
-  language: AgentLanguage;
+  language: LanguageFilter; // Support 'all' for unspecified language
   voice_name: string;
   voice_gender: 'male' | 'female' | '';
   style: string;
@@ -86,11 +86,11 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const [formData, setFormData] = useState<AgentFormData>({
     agent_name: "",
     voice_id: "",
-    language: "zh-CN",
+    language: "all",
     voice_name: "",
     voice_gender: "",
     style: "",
-    start_message: DEFAULT_START_MESSAGES['zh-CN'],
+    start_message: "",
     llm_model: "gpt-4o",
     llm_temperature: 0.7,
     llm_system_prompt: "You are a helpful AI assistant.",
@@ -109,11 +109,14 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   }, [params]);
 
   // Filter agents by language
+  // Agents without a language (considered as 'all languages') show up in all language filters
   useEffect(() => {
     if (languageFilter === "all") {
       setFilteredAgents(agents);
     } else {
-      setFilteredAgents(agents.filter(agent => agent.language === languageFilter));
+      setFilteredAgents(agents.filter(agent => 
+        agent.language === languageFilter || !agent.language
+      ));
     }
   }, [agents, languageFilter]);
 
@@ -163,12 +166,15 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     return null;
   };
 
-  // Handle language change - update default start message
-  const handleLanguageChange = (language: AgentLanguage) => {
+  // Handle language change - update default start message for specific languages
+  const handleLanguageChange = (language: LanguageFilter) => {
     setFormData({
       ...formData,
       language,
-      start_message: DEFAULT_START_MESSAGES[language],
+      // Only auto-fill start message for specific languages, clear for 'all'
+      start_message: language !== 'all' && DEFAULT_START_MESSAGES[language] 
+        ? DEFAULT_START_MESSAGES[language] 
+        : formData.start_message,
     });
   };
 
@@ -189,7 +195,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       const requestBody: Record<string, unknown> = {
         agent_name: formData.agent_name,
         voice_id: formData.voice_id || voices[0]?.voice_id || "cartesia-Cleo",
-        language: formData.language,
+        // Only send language if it's not 'all'
+        ...(formData.language !== 'all' && { language: formData.language }),
         voice_name: formData.voice_name || undefined,
         voice_gender: formData.voice_gender || undefined,
         style: formData.style || undefined,
@@ -237,7 +244,8 @@ export default function AgentsPage({ params }: AgentsPageProps) {
       
       if (formData.agent_name) requestBody.agent_name = formData.agent_name;
       if (formData.voice_id) requestBody.voice_id = formData.voice_id;
-      requestBody.language = formData.language;
+      // Set language to null if 'all' is selected
+      requestBody.language = formData.language === 'all' ? null : formData.language;
       requestBody.voice_name = formData.voice_name || null;
       requestBody.voice_gender = formData.voice_gender || null;
       requestBody.style = formData.style || null;
@@ -294,11 +302,11 @@ export default function AgentsPage({ params }: AgentsPageProps) {
     setFormData({
       agent_name: "",
       voice_id: "",
-      language: "zh-CN",
+      language: "all",
       voice_name: "",
       voice_gender: "",
       style: "",
-      start_message: DEFAULT_START_MESSAGES['zh-CN'],
+      start_message: "",
       llm_model: "gpt-4o",
       llm_temperature: 0.7,
       llm_system_prompt: "You are a helpful AI assistant.",
@@ -312,14 +320,15 @@ export default function AgentsPage({ params }: AgentsPageProps) {
 
   const openEditDialog = (agent: Agent) => {
     setSelectedAgent(agent);
+    const agentLanguage = agent.language || "all";
     setFormData({
       agent_name: agent.agent_name || "",
       voice_id: agent.voice_id || "",
-      language: agent.language || "zh-CN",
+      language: agentLanguage,
       voice_name: agent.voice_name || "",
       voice_gender: agent.voice_gender || "",
       style: agent.style || "",
-      start_message: agent.conversation_flow?.start_msg || DEFAULT_START_MESSAGES[agent.language || 'zh-CN'],
+      start_message: agent.conversation_flow?.start_msg || (agentLanguage !== 'all' ? DEFAULT_START_MESSAGES[agentLanguage as AgentLanguage] : ""),
       llm_model: agent.llm_model || "gpt-4o",
       llm_temperature: agent.llm_temperature || 0.7,
       llm_system_prompt: agent.llm_system_prompt || "",
@@ -335,10 +344,13 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const defaultLlmId = getDefaultLlmId();
 
   // Count agents by language
+  // Agents without language are counted as supporting all languages
+  const agentsWithoutLanguage = agents.filter(a => !a.language).length;
   const languageCounts = {
     all: agents.length,
     ...AVAILABLE_LANGUAGES.reduce((acc, lang) => {
-      acc[lang] = agents.filter(a => a.language === lang).length;
+      // Include agents without language (all languages) in each language count
+      acc[lang] = agents.filter(a => a.language === lang).length + agentsWithoutLanguage;
       return acc;
     }, {} as Record<AgentLanguage, number>)
   };
@@ -454,11 +466,12 @@ export default function AgentsPage({ params }: AgentsPageProps) {
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-sm md:text-base truncate">{agent.agent_name || "Unnamed Agent"}</p>
-                          {agent.language && (
-                            <Badge variant="outline" className="text-xs shrink-0">
-                              {LANGUAGE_CONFIG[agent.language]?.flag} {LANGUAGE_CONFIG[agent.language]?.name}
-                            </Badge>
-                          )}
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            {agent.language && LANGUAGE_CONFIG[agent.language] 
+                              ? `${LANGUAGE_CONFIG[agent.language].flag} ${LANGUAGE_CONFIG[agent.language].name}`
+                              : `${ALL_LANGUAGES_OPTION.flag} ${t("allLanguages")}`
+                            }
+                          </Badge>
                         </div>
                         <p className="text-xs md:text-sm text-muted-foreground font-mono truncate">{agent.agent_id}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -599,7 +612,7 @@ function AgentForm({
   tCommon: (key: string) => string;
   voices: Voice[];
   voicesLoading: boolean;
-  onLanguageChange: (language: AgentLanguage) => void;
+  onLanguageChange: (language: LanguageFilter) => void;
 }) {
   return (
     <div className="grid gap-4 py-4">
@@ -613,7 +626,7 @@ function AgentForm({
         />
       </div>
       
-      {/* Language Selection - Only specific languages for creation/edit */}
+      {/* Language Selection - includes 'all' option */}
       <div className="grid gap-2">
         <Label htmlFor="language" className="flex items-center gap-2">
           <Globe className="h-4 w-4" />
@@ -621,12 +634,17 @@ function AgentForm({
         </Label>
         <Select
           value={formData.language}
-          onValueChange={(value) => onLanguageChange(value as AgentLanguage)}
+          onValueChange={(value) => onLanguageChange(value as LanguageFilter)}
         >
           <SelectTrigger>
             <SelectValue placeholder={t("selectLanguage")} />
           </SelectTrigger>
           <SelectContent>
+            {/* All Languages option */}
+            <SelectItem value="all">
+              {ALL_LANGUAGES_OPTION.flag} {t("allLanguages")}
+            </SelectItem>
+            {/* Specific languages */}
             {AVAILABLE_LANGUAGES.map((lang) => (
               <SelectItem key={lang} value={lang}>
                 {LANGUAGE_CONFIG[lang].flag} {LANGUAGE_CONFIG[lang].name}
