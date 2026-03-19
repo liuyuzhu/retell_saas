@@ -1,34 +1,44 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-// Email configuration
+// Email configuration - 支持两种模式：SMTP 和 Resend API
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.aliyun.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '465');
-const SMTP_SECURE = SMTP_PORT === 465; // 465 使用 SSL，其他使用 TLS
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true' || SMTP_PORT === 465;
 const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@migeai.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Mige AI';
 
-// Create transporter
-function createTransporter() {
+// Resend API 配置 (可选的替代方案)
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || EMAIL_FROM;
+
+// 使用 Resend API (推荐)
+const USE_RESEND = Boolean(RESEND_API_KEY);
+
+// Initialize Resend client
+const resend = USE_RESEND ? new Resend(RESEND_API_KEY) : null;
+
+// Check if email is configured
+export function isEmailConfigured(): boolean {
+  return USE_RESEND || Boolean(SMTP_USER && SMTP_PASS && SMTP_HOST);
+}
+
+// Create SMTP transporter
+function createSmtpTransporter() {
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_SECURE, // true for 465 (SSL), false for other ports (TLS)
+    secure: SMTP_SECURE,
     auth: SMTP_USER && SMTP_PASS ? {
       user: SMTP_USER,
       pass: SMTP_PASS,
     } : undefined,
-    // 阿里云邮箱可能需要的额外配置
-    tls: {
-      rejectUnauthorized: false,
-    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
   });
-}
-
-// Check if email is configured
-export function isEmailConfigured(): boolean {
-  return Boolean(SMTP_USER && SMTP_PASS && SMTP_HOST);
 }
 
 // Send email with error logging
@@ -47,15 +57,34 @@ async function sendEmail(options: {
   }
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: `"${EMAIL_FROM_NAME}" <${EMAIL_FROM}>`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-    });
-    console.log('[Email] Sent successfully to:', options.to);
-    return true;
+    if (USE_RESEND) {
+      // 使用 Resend API
+      const { data, error } = await resend!.emails.send({
+        from: `"${EMAIL_FROM_NAME}" <${RESEND_FROM_EMAIL}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+      });
+      
+      if (error) {
+        console.error('[Email] Resend error:', error);
+        return false;
+      }
+      
+      console.log('[Email] Sent via Resend successfully:', data?.id);
+      return true;
+    } else {
+      // 使用 SMTP
+      const transporter = createSmtpTransporter();
+      await transporter.sendMail({
+        from: `"${EMAIL_FROM_NAME}" <${EMAIL_FROM}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+      });
+      console.log('[Email] Sent via SMTP successfully to:', options.to);
+      return true;
+    }
   } catch (error) {
     console.error('[Email] Failed to send:', error);
     return false;
