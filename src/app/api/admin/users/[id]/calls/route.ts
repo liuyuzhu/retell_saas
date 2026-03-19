@@ -27,10 +27,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get user's call records
     const { data: calls, error } = await client
-      .from('user_call_records')
+      .from('user_calls')
       .select('*')
       .eq('user_id', id)
-      .order('created_at', { ascending: false })
+      .order('start_timestamp', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get total count
     const { count } = await client
-      .from('user_call_records')
+      .from('user_calls')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', id);
 

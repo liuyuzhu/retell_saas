@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRetellClient } from '@/lib/retell-client';
 
 // GET /api/voices/[id] - Get a specific voice
 export async function GET(
@@ -9,10 +8,26 @@ export async function GET(
   try {
     const { id } = await params;
     
-    const retellClient = getRetellClient();
-    const result = await retellClient.getVoice(id);
-    
-    return NextResponse.json(result);
+    const apiKey = process.env.RETELL_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'RETELL_API_KEY is not configured' }, { status: 500 });
+    }
+
+    const response = await fetch(`https://api.retellai.com/get-voice/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return NextResponse.json({ error: `Retell API error: ${response.status}` }, { status: 500 });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error getting voice:', error);
     return NextResponse.json(

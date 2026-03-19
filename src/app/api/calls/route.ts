@@ -16,28 +16,37 @@ export const GET = withAuth(async (request: NextRequest, ctx) => {
 
   const client = getSupabaseClient();
 
-  let query = client
-    .from('user_calls')
-    .select('*')
-    .order('start_timestamp', { ascending: false })
-    .limit(limit);
+  try {
+    let query = client
+      .from('user_calls')
+      .select('*', { count: 'exact' })
+      .order('start_timestamp', { ascending: false })
+      .limit(limit);
 
-  // Data isolation: tenants only see their own calls
-  if (!ctx.isAdmin) {
-    query = query.eq('user_id', ctx.user.userId);
+    // Data isolation: tenants only see their own calls
+    if (!ctx.isAdmin) {
+      query = query.eq('user_id', ctx.user.userId);
+    }
+
+    if (before) query = query.lt('start_timestamp', before);
+    if (after) query = query.gt('start_timestamp', after);
+
+    const { data: calls, error, count } = await query;
+
+    if (error) {
+      console.error('[Calls] DB error:', error);
+      // 如果表不存在，返回空列表而不是错误
+      if (error.code === 'PGRST204' || error.code === 'PGRST205') {
+        return ok({ data: [], has_more: false, count: 0 });
+      }
+      return Err.internal();
+    }
+
+    return ok({ data: calls ?? [], has_more: false, count: count ?? 0 });
+  } catch (err) {
+    console.error('[Calls] Unexpected error:', err);
+    return ok({ data: [], has_more: false, count: 0 });
   }
-
-  if (before) query = query.lt('start_timestamp', before);
-  if (after) query = query.gt('start_timestamp', after);
-
-  const { data: calls, error } = await query;
-
-  if (error) {
-    console.error('[Calls] DB error:', error);
-    return Err.internal();
-  }
-
-  return ok({ data: calls ?? [], has_more: false });
 });
 
 // ─── POST /api/calls ──────────────────────────────────────────────────────────
