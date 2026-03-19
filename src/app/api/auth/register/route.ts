@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { hashPassword, generateToken, setAuthCookie, isPrimaryAccount } from '@/lib/auth';
-import { sendWelcomeEmail } from '@/lib/email';
+import { sendWelcomeEmail, isEmailConfigured } from '@/lib/email';
 import { ok, Err } from '@/lib/api-helpers';
 import { RegisterSchema } from '@/lib/validation';
 
@@ -50,11 +50,11 @@ export async function POST(request: NextRequest) {
     const token = generateToken({ userId: newUser.id, email: newUser.email, role: newUser.role });
     await setAuthCookie(token);
 
-    // Fire-and-forget welcome email
-    const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? 'en';
-    sendWelcomeEmail(newUser.email, newUser.name ?? 'User', locale).catch(e =>
-      console.error('[Register] Welcome email failed:', e)
-    );
+    // Send welcome email (synchronously)
+    const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? 'zh';
+    if (isEmailConfigured()) {
+      await sendWelcomeEmail(newUser.email, newUser.name ?? '用户', locale);
+    }
 
     const { password_hash: _, ...userWithoutPassword } = newUser;
     return ok({ success: true, user: userWithoutPassword });

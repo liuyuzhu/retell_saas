@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { generateResetToken } from '@/lib/auth';
-import { sendPasswordResetEmail } from '@/lib/email';
+import { sendPasswordResetEmail, isEmailConfigured } from '@/lib/email';
 import { ok, Err } from '@/lib/api-helpers';
 import { ForgotPasswordSchema } from '@/lib/validation';
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { data: user } = await client
       .from('users').select('id, email').eq('email', email).limit(1).single();
 
-    if (!user) return ok(SAFE_RESPONSE); // silent
+    if (!user) return ok(SAFE_RESPONSE); // silent - prevent email enumeration
 
     const resetToken = generateResetToken();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -33,8 +33,13 @@ export async function POST(request: NextRequest) {
       expires_at: expiresAt.toISOString(),
     });
 
-    const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? 'en';
-    await sendPasswordResetEmail(user.email, resetToken, locale);
+    // Send password reset email if configured
+    if (isEmailConfigured()) {
+      const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? 'zh';
+      await sendPasswordResetEmail(user.email, resetToken, locale);
+    } else {
+      console.log('[Forgot Password] Email not configured. Token:', resetToken);
+    }
 
     return ok(SAFE_RESPONSE);
   } catch (error) {
