@@ -8,6 +8,7 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
 import { authFetch, clearAuth } from "@/lib/auth-client";
+import { ChatBot } from "@/components/chatbot";
 
 export interface AuthUser {
   id: string;
@@ -167,6 +168,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
       </main>
       <MobileBottomNav locale={locale} isAdmin={user.role === "admin"} />
       <Toaster />
+      <ChatBot />
     </div>
   );
 }

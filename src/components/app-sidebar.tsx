@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   LogOut,
+  BookOpen,
 } from "lucide-react";
 
 const sidebarNavItems = [
@@ -52,6 +53,12 @@ const sidebarNavItems = [
     titleKey: "conversations",
     href: "/conversations",
     icon: MessageSquare,
+  },
+  {
+    titleKey: "knowledge",
+    href: "/knowledge",
+    icon: BookOpen,
+    label: "AI",
   },
 ];
 

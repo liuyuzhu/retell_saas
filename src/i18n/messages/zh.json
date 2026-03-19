@@ -198,6 +198,57 @@
     "deleteConfirm": "删除对话",
     "deleteConfirmDesc": "确定要删除此对话吗？此操作无法撤销。"
   },
+  "chatbot": {
+    "title": "AI 助手",
+    "open": "打开聊天",
+    "close": "关闭",
+    "minimize": "最小化",
+    "welcome": "有什么可以帮您？",
+    "welcomeHint": "我可以回答关于米格AI平台的问题",
+    "placeholder": "输入您的问题...",
+    "thinking": "思考中...",
+    "clearHistory": "清空对话",
+    "send": "发送",
+    "error": "发送失败，请重试"
+  },
+  "knowledge": {
+    "title": "知识库管理",
+    "description": "配置AI助手的知识来源",
+    "tabs": {
+      "overview": "知识概览",
+      "addContent": "添加内容",
+      "documents": "文档库"
+    },
+    "overview": {
+      "totalDocuments": "文档总数",
+      "totalUrls": "链接总数",
+      "lastUpdated": "最后更新",
+      "knowledgeStatus": "知识库状态"
+    },
+    "addContent": {
+      "title": "添加知识内容",
+      "desc": "通过URL或文档为AI助手添加知识",
+      "url": "网页链接",
+      "urlPlaceholder": "https://example.com",
+      "urlHint": "输入网页URL，系统将自动抓取内容",
+      "document": "上传文档",
+      "documentHint": "支持 PDF、TXT、DOCX 格式",
+      "addButton": "添加",
+      "processing": "处理中...",
+      "success": "添加成功",
+      "error": "添加失败"
+    },
+    "documents": {
+      "title": "已上传文档",
+      "name": "文件名",
+      "type": "类型",
+      "size": "大小",
+      "addedAt": "添加时间",
+      "actions": "操作",
+      "delete": "删除",
+      "noDocuments": "暂无文档"
+    }
+  },
   "settings": {
     "title": "系统设置",
     "description": "配置您的米格AI集成",
