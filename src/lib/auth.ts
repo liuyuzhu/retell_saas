@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 const SALT_ROUNDS = 12;
 
 // Primary account - the only account with configuration privileges
-export const PRIMARY_ACCOUNT_EMAIL = 'liuyuzhu19883@gmail.com';
+export const PRIMARY_ACCOUNT_EMAIL = 'liuyuzhu19882@gmail.com';
 
 // Check if user is the primary account owner
 export function isPrimaryAccount(email: string): boolean {
