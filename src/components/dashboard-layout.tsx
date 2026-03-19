@@ -20,25 +20,68 @@ interface DashboardLayoutProps {
   locale: string;
 }
 
-// ─── Session cache helpers (in-memory only — no localStorage for sensitive data) ─
+// ─── Session cache helpers (localStorage + in-memory) ─
 
 let _cachedUser: AuthUser | null = null;
 let _cachedAt = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-function getCachedUser(): AuthUser | null {
-  if (_cachedUser && Date.now() - _cachedAt < CACHE_TTL) return _cachedUser;
+// Load from localStorage on client side
+function loadFromLocalStorage(): AuthUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem('auth_user');
+    const timestamp = localStorage.getItem('auth_timestamp');
+    if (stored && timestamp) {
+      const age = Date.now() - parseInt(timestamp, 10);
+      if (age < CACHE_TTL) {
+        return JSON.parse(stored);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load user from localStorage:', e);
+  }
   return null;
+}
+
+function getCachedUser(): AuthUser | null {
+  // Check in-memory cache first
+  if (_cachedUser && Date.now() - _cachedAt < CACHE_TTL) return _cachedUser;
+  // Then check localStorage
+  const lsUser = loadFromLocalStorage();
+  if (lsUser) {
+    _cachedUser = lsUser;
+    _cachedAt = Date.now();
+  }
+  return lsUser;
 }
 
 function setCachedUser(user: AuthUser) {
   _cachedUser = user;
   _cachedAt = Date.now();
+  // Also save to localStorage for persistence across page reloads
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('auth_user', JSON.stringify(user));
+      localStorage.setItem('auth_timestamp', Date.now().toString());
+    } catch (e) {
+      console.warn('Failed to save user to localStorage:', e);
+    }
+  }
 }
 
 function clearCachedUser() {
   _cachedUser = null;
   _cachedAt = 0;
+  // Clear localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_timestamp');
+    } catch (e) {
+      console.warn('Failed to clear localStorage:', e);
+    }
+  }
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

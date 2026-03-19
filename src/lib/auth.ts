@@ -81,7 +81,7 @@ export async function setAuthCookie(token: string) {
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax', // Allow cookies to be sent with top-level navigations
     maxAge: TOKEN_TTL,
     path: '/',
   });

@@ -132,7 +132,7 @@ export default function LoginPage({ params }: LoginPageProps) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
@@ -144,16 +144,28 @@ export default function LoginPage({ params }: LoginPageProps) {
 
       toast.success("登录成功");
       
+      // Store user info in localStorage for quick access
       if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }
       
-      window.location.href = `/${locale}`;
+      // Wait for cookie to be set before redirect
+      // Then verify session once before navigating
+      try {
+        await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+      } catch (e) {
+        console.warn("Session verification failed:", e);
+      }
+      
+      // Use router.push for client-side navigation which preserves cookies better
+      router.push(`/${locale}`);
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error instanceof Error ? error.message : "登录失败");
-    } finally {
       setLoading(false);
     }
   };
@@ -214,11 +226,22 @@ export default function LoginPage({ params }: LoginPageProps) {
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }
       
-      window.location.href = `/${locale}`;
+      // Wait for cookie to be set before redirect
+      // Then verify session once before navigating
+      try {
+        await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+      } catch (e) {
+        console.warn("Session verification failed:", e);
+      }
+      
+      // Use router.push for client-side navigation which preserves cookies better
+      router.push(`/${locale}`);
     } catch (error) {
       console.error("Register error:", error);
       toast.error(error instanceof Error ? error.message : "注册失败");
-    } finally {
       setLoading(false);
     }
   };
