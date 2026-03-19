@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retellClient } from '@/lib/retell-client';
 import { CreateAgentRequest } from '@/lib/retell-types';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isPrimaryAccount, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET /api/agents - List agents (with data isolation)
@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
     }
 
     const client = getSupabaseClient();
+    const isPrimary = isPrimaryAccount(currentUser.email);
 
-    // Admin can see all agents
-    if (currentUser.role === 'admin') {
+    // Primary account or admin can see all agents
+    if (isPrimary || currentUser.role === 'admin') {
       const searchParams = request.nextUrl.searchParams;
       const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
       const cursor = searchParams.get('cursor') || undefined;
@@ -25,7 +26,13 @@ export async function GET(request: NextRequest) {
       const after = searchParams.get('after') ? parseInt(searchParams.get('after')!) : undefined;
 
       const result = await retellClient.listAgents({ limit, cursor, before, after });
-      return NextResponse.json(result);
+      
+      // Add flag to indicate if user can manage (create/delete) agents
+      return NextResponse.json({
+        ...result,
+        canManage: isPrimary,
+        primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
+      });
     }
 
     // Regular user - only see assigned agents
@@ -35,7 +42,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', currentUser.userId);
 
     if (!userAgents || userAgents.length === 0) {
-      return NextResponse.json({ data: [], has_more: false });
+      return NextResponse.json({ data: [], has_more: false, canManage: false });
     }
 
     // Get all agents from Retell API
@@ -48,6 +55,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: filteredAgents,
       has_more: false,
+      canManage: false, // Regular users cannot create/delete agents
     });
   } catch (error) {
     console.error('Error listing agents:', error);
@@ -58,15 +66,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/agents - Create a new agent (admin only)
+// POST /api/agents - Create a new agent (PRIMARY ACCOUNT ONLY)
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     
-    // Only admin can create agents
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can create agents
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Only administrators can create agents.' },
+        { error: 'Unauthorized. Only the primary account owner can create agents.' },
         { status: 403 }
       );
     }

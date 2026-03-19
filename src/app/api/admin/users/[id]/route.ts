@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser, hashPassword } from '@/lib/auth';
+import { getCurrentUser, hashPassword, isPrimaryAccount, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -50,6 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       success: true,
       user: {
         ...user,
+        isPrimary: isPrimaryAccount(user.email),
         agents: userAgents?.map(ua => ua.agent_id) || [],
         phoneNumbers: userPhoneNumbers?.map(upn => upn.phone_number) || [],
       },
@@ -63,15 +64,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// Update user (admin only)
+// Update user (PRIMARY ACCOUNT ONLY for agent/phone configuration)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const currentUser = await getCurrentUser();
     
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser) {
       return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
@@ -81,12 +82,55 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const client = getSupabaseClient();
 
+    // Check if user exists and get their email
+    const { data: targetUser } = await client
+      .from('users')
+      .select('id, email')
+      .eq('id', id)
+      .single();
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Permission checks
+    const isPrimary = isPrimaryAccount(currentUser.email);
+    const isTargetPrimary = isPrimaryAccount(targetUser.email);
+    const isSelfUpdate = id === currentUser.userId;
+
+    // Only primary account can modify agent/phone assignments
+    if ((agentIds !== undefined || phoneNumbers !== undefined) && !isPrimary) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only the primary account owner can assign agents and phone numbers.' },
+        { status: 403 }
+      );
+    }
+
+    // Only primary account can modify role for other users
+    if (role !== undefined && !isSelfUpdate && !isPrimary) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Only the primary account owner can modify user roles.' },
+        { status: 403 }
+      );
+    }
+
+    // Prevent modifying primary account's role
+    if (isTargetPrimary && role !== undefined) {
+      return NextResponse.json(
+        { error: 'Cannot modify primary account role.' },
+        { status: 400 }
+      );
+    }
+
     // Build update object
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name !== undefined) updateData.name = name;
     if (phone !== undefined) updateData.phone = phone;
-    if (role !== undefined) updateData.role = role;
-    if (is_active !== undefined) updateData.is_active = is_active;
+    if (role !== undefined && !isTargetPrimary) updateData.role = role;
+    if (is_active !== undefined && !isTargetPrimary) updateData.is_active = is_active;
     if (password) updateData.password_hash = await hashPassword(password);
 
     // Update user
@@ -105,8 +149,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Update agent assignments if provided
-    if (agentIds !== undefined) {
+    // Update agent assignments (PRIMARY ACCOUNT ONLY)
+    if (agentIds !== undefined && isPrimary) {
       // Remove existing assignments
       await client.from('user_agents').delete().eq('user_id', id);
       
@@ -120,8 +164,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Update phone number assignments if provided
-    if (phoneNumbers !== undefined) {
+    // Update phone number assignments (PRIMARY ACCOUNT ONLY)
+    if (phoneNumbers !== undefined && isPrimary) {
       // Remove existing assignments
       await client.from('user_phone_numbers').delete().eq('user_id', id);
       
@@ -148,14 +192,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// Delete user (admin only)
+// Delete user (PRIMARY ACCOUNT ONLY)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const currentUser = await getCurrentUser();
     
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can delete users
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
+        { error: 'Unauthorized. Only the primary account owner can delete users.' },
         { status: 403 }
       );
     }
@@ -175,7 +220,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Check if user exists
     const { data: user } = await client
       .from('users')
-      .select('id, role')
+      .select('id, email')
       .eq('id', id)
       .single();
 
@@ -186,10 +231,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Prevent deleting other admins
-    if (user.role === 'admin') {
+    // Prevent deleting primary account
+    if (isPrimaryAccount(user.email)) {
       return NextResponse.json(
-        { error: 'Cannot delete admin users' },
+        { error: 'Cannot delete the primary account.' },
         { status: 400 }
       );
     }

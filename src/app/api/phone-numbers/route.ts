@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retellClient } from '@/lib/retell-client';
 import { CreatePhoneNumberRequest } from '@/lib/retell-types';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isPrimaryAccount, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // GET /api/phone-numbers - List phone numbers (with data isolation)
@@ -15,15 +15,22 @@ export async function GET(request: NextRequest) {
     }
 
     const client = getSupabaseClient();
+    const isPrimary = isPrimaryAccount(currentUser.email);
 
-    // Admin can see all phone numbers
-    if (currentUser.role === 'admin') {
+    // Primary account or admin can see all phone numbers
+    if (isPrimary || currentUser.role === 'admin') {
       const searchParams = request.nextUrl.searchParams;
       const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
       const cursor = searchParams.get('cursor') || undefined;
 
       const result = await retellClient.listPhoneNumbers({ limit, cursor });
-      return NextResponse.json(result);
+      
+      // Add flag to indicate if user can manage phone numbers
+      return NextResponse.json({
+        ...result,
+        canManage: isPrimary,
+        primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
+      });
     }
 
     // Regular user - only see assigned phone numbers
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', currentUser.userId);
 
     if (!userPhoneNumbers || userPhoneNumbers.length === 0) {
-      return NextResponse.json({ data: [], has_more: false });
+      return NextResponse.json({ data: [], has_more: false, canManage: false });
     }
 
     // Get all phone numbers from Retell API
@@ -46,6 +53,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: filteredNumbers,
       has_more: false,
+      canManage: false, // Regular users cannot create/delete phone numbers
     });
   } catch (error) {
     console.error('Error listing phone numbers:', error);
@@ -56,15 +64,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/phone-numbers - Create a new phone number (admin only)
+// POST /api/phone-numbers - Create a new phone number (PRIMARY ACCOUNT ONLY)
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     
-    // Only admin can create phone numbers
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can create phone numbers
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Only administrators can create phone numbers.' },
+        { error: 'Unauthorized. Only the primary account owner can create phone numbers.' },
         { status: 403 }
       );
     }

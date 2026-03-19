@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { retellClient } from '@/lib/retell-client';
 import { UpdateAgentRequest } from '@/lib/retell-types';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, isPrimaryAccount } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 interface RouteParams {
@@ -9,8 +9,8 @@ interface RouteParams {
 }
 
 // Helper function to check if user has access to agent
-async function hasAgentAccess(userId: string, agentId: string, isAdmin: boolean): Promise<boolean> {
-  if (isAdmin) return true;
+async function hasAgentAccess(userId: string, agentId: string, isPrimary: boolean): Promise<boolean> {
+  if (isPrimary) return true;
   
   const client = getSupabaseClient();
   const { data } = await client
@@ -36,9 +36,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
+    const isPrimary = isPrimaryAccount(currentUser.email);
     
     // Check access
-    const hasAccess = await hasAgentAccess(currentUser.userId, id, currentUser.role === 'admin');
+    const hasAccess = await hasAgentAccess(currentUser.userId, id, isPrimary || currentUser.role === 'admin');
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'Agent not found or access denied' },
@@ -47,7 +48,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     const result = await retellClient.getAgent(id);
-    return NextResponse.json(result);
+    
+    // Add management permission flag
+    return NextResponse.json({
+      ...result,
+      canManage: isPrimary, // Only primary account can modify
+    });
   } catch (error) {
     console.error('Error getting agent:', error);
     return NextResponse.json(
@@ -57,15 +63,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PATCH /api/agents/[id] - Update an agent (admin only)
+// PATCH /api/agents/[id] - Update an agent (PRIMARY ACCOUNT ONLY)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const currentUser = await getCurrentUser();
     
-    // Only admin can update agents
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can update agents
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Only administrators can update agents.' },
+        { error: 'Unauthorized. Only the primary account owner can update agents.' },
         { status: 403 }
       );
     }
@@ -85,15 +91,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/agents/[id] - Delete an agent (admin only)
+// DELETE /api/agents/[id] - Delete an agent (PRIMARY ACCOUNT ONLY)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const currentUser = await getCurrentUser();
     
-    // Only admin can delete agents
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can delete agents
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Only administrators can delete agents.' },
+        { error: 'Unauthorized. Only the primary account owner can delete agents.' },
         { status: 403 }
       );
     }

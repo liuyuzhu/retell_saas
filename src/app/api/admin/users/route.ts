@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser, hashPassword } from '@/lib/auth';
+import { getCurrentUser, hashPassword, isPrimaryAccount, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
 
 // Get all users (admin only)
 export async function GET() {
@@ -49,9 +49,10 @@ export async function GET() {
       .from('user_phone_numbers')
       .select('user_id, phone_number');
 
-    // Combine data
+    // Add isPrimary flag to each user
     const usersWithAssignments = users.map(user => ({
       ...user,
+      isPrimary: isPrimaryAccount(user.email),
       agents: userAgents?.filter(ua => ua.user_id === user.id).map(ua => ua.agent_id) || [],
       phoneNumbers: userPhoneNumbers?.filter(upn => upn.user_id === user.id).map(upn => upn.phone_number) || [],
     }));
@@ -59,6 +60,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: usersWithAssignments,
+      primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
     });
   } catch (error) {
     console.error('Get users error:', error);
@@ -69,14 +71,15 @@ export async function GET() {
   }
 }
 
-// Create new user (admin only)
+// Create new user (PRIMARY ACCOUNT ONLY)
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     
-    if (!currentUser || currentUser.role !== 'admin') {
+    // Only primary account can create users
+    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
       return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
+        { error: 'Unauthorized. Only the primary account owner can create users.' },
         { status: 403 }
       );
     }
@@ -87,6 +90,14 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Prevent creating another primary account
+    if (isPrimaryAccount(email)) {
+      return NextResponse.json(
+        { error: 'Cannot create another primary account.' },
         { status: 400 }
       );
     }
