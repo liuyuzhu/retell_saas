@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export default function UsersPage({ params }: UsersPageProps) {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/users", { credentials: 'include' });
+      const res = await apiFetch("/api/admin/users", { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
@@ -116,7 +117,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents", { credentials: 'include' });
+      const res = await apiFetch("/api/agents", { credentials: 'include' });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -126,7 +127,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   const fetchPhoneNumbers = async () => {
     try {
-      const res = await fetch("/api/phone-numbers", { credentials: 'include' });
+      const res = await apiFetch("/api/phone-numbers", { credentials: 'include' });
       const data = await res.json();
       setPhoneNumbers(data.data || []);
     } catch (error) {
@@ -153,7 +154,7 @@ export default function UsersPage({ params }: UsersPageProps) {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/admin/users", {
+      const res = await apiFetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',

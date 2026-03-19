@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, isPrimaryAccount, JWTPayload } from '@/lib/auth';
+import { getCurrentUser, getCurrentUserFromHeader, isPrimaryAccount, JWTPayload } from '@/lib/auth';
 
 // ─── Response helpers ────────────────────────────────────────────────────────
 
@@ -44,12 +44,24 @@ type AuthHandler = (
 
 /**
  * Wraps a route handler and injects the authenticated user context.
+ * Supports both Cookie and Authorization header (Bearer token).
  * Returns 401 if not logged in.
  */
 export function withAuth(handler: AuthHandler) {
   return async (request: NextRequest, routeCtx?: { params?: Promise<Record<string, string>> }) => {
     try {
-      const user = await getCurrentUser();
+      // Try to get user from Cookie first, then from Authorization header
+      let user = await getCurrentUser();
+      
+      // If no user from cookie, try Authorization header
+      if (!user) {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+          const token = authHeader.substring(7);
+          user = getCurrentUserFromHeader(token);
+        }
+      }
+      
       if (!user) return Err.unauthorized();
 
       const params = routeCtx?.params ? await routeCtx.params : undefined;

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,7 @@ export default function PhoneNumbersPage({ params }: PhoneNumbersPageProps) {
   const fetchPhoneNumbers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/phone-numbers");
+      const res = await apiFetch("/api/phone-numbers");
       const data = await res.json();
       setPhoneNumbers(data.data || []);
     } catch (error) {
@@ -79,7 +80,7 @@ export default function PhoneNumbersPage({ params }: PhoneNumbersPageProps) {
 
   const handleCreate = async () => {
     try {
-      const res = await fetch("/api/phone-numbers", {
+      const res = await apiFetch("/api/phone-numbers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

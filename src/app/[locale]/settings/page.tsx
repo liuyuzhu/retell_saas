@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +32,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
     // Check if API key is configured
     const checkConfig = async () => {
       try {
-        const res = await fetch("/api/agents?limit=1");
+        const res = await apiFetch("/api/agents?limit=1");
         if (res.ok) {
           setIsConfigured(true);
         }
@@ -45,7 +46,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
   const handleTestConnection = async () => {
     setTesting(true);
     try {
-      const res = await fetch("/api/agents?limit=1");
+      const res = await apiFetch("/api/agents?limit=1");
       if (res.ok) {
         toast.success(t("connected"));
         setIsConfigured(true);

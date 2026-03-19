@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export default function VoicesPage({ params }: VoicesPageProps) {
   const fetchVoices = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/voices");
+      const res = await apiFetch("/api/voices");
       const data = await res.json();
       setVoices(data.data || []);
     } catch (error) {

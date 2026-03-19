@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -88,7 +89,7 @@ export default function CallsPage({ params }: CallsPageProps) {
   const fetchCalls = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/calls", { credentials: "include" });
+      const res = await apiFetch("/api/calls", { credentials: "include" });
       const data = await res.json();
       setCalls(data.data || []);
     } catch (error) {
@@ -102,7 +103,7 @@ export default function CallsPage({ params }: CallsPageProps) {
   const fetchAgents = async () => {
     setLoadingAgents(true);
     try {
-      const res = await fetch("/api/agents", { credentials: "include" });
+      const res = await apiFetch("/api/agents", { credentials: "include" });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -126,7 +127,7 @@ export default function CallsPage({ params }: CallsPageProps) {
   const handleCreatePhoneCall = async () => {
     try {
       setStartingCall(true);
-      const res = await fetch("/api/calls", {
+      const res = await apiFetch("/api/calls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -161,7 +162,7 @@ export default function CallsPage({ params }: CallsPageProps) {
 
     try {
       setStartingCall(true);
-      const res = await fetch("/api/calls", {
+      const res = await apiFetch("/api/calls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

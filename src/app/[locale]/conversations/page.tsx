@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
   const fetchConversations = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/conversations");
+      const res = await apiFetch("/api/conversations");
       const data = await res.json();
       setConversations(data.data || []);
     } catch (error) {

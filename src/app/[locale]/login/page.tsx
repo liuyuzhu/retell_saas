@@ -144,14 +144,14 @@ export default function LoginPage({ params }: LoginPageProps) {
 
       toast.success("登录成功");
       
-      // Store user info in localStorage for quick access
+      // Store user info and token in localStorage for persistence
       if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token || '');
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }
       
-      // Wait for cookie to be set before redirect
-      // Then verify session once before navigating
+      // Verify session before navigating
       try {
         await fetch("/api/auth/me", {
           credentials: "include",
@@ -161,7 +161,7 @@ export default function LoginPage({ params }: LoginPageProps) {
         console.warn("Session verification failed:", e);
       }
       
-      // Use router.push for client-side navigation which preserves cookies better
+      // Use router.push for client-side navigation
       router.push(`/${locale}`);
     } catch (error) {
       console.error("Login error:", error);
@@ -221,13 +221,14 @@ export default function LoginPage({ params }: LoginPageProps) {
 
       toast.success("注册成功");
       
+      // Store user info and token in localStorage for persistence
       if (typeof window !== 'undefined' && data.user) {
         localStorage.setItem('auth_user', JSON.stringify(data.user));
+        localStorage.setItem('auth_token', data.token || '');
         localStorage.setItem('auth_timestamp', Date.now().toString());
       }
       
-      // Wait for cookie to be set before redirect
-      // Then verify session once before navigating
+      // Verify session before navigating
       try {
         await fetch("/api/auth/me", {
           credentials: "include",
@@ -237,7 +238,7 @@ export default function LoginPage({ params }: LoginPageProps) {
         console.warn("Session verification failed:", e);
       }
       
-      // Use router.push for client-side navigation which preserves cookies better
+      // Use router.push for client-side navigation
       router.push(`/${locale}`);
     } catch (error) {
       console.error("Register error:", error);

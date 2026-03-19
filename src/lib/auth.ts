@@ -74,6 +74,11 @@ export function verifyToken(token: string): JWTPayload | null {
   }
 }
 
+// Verify token from header (doesn't need cookies())
+export function getCurrentUserFromHeader(token: string): JWTPayload | null {
+  return verifyToken(token);
+}
+
 // ─── Cookie ──────────────────────────────────────────────────────────────────
 
 export async function setAuthCookie(token: string) {

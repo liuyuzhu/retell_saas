@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Phone, Bot, PhoneCall, MessageSquare, TrendingUp, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api-fetch";
 
 interface Stats {
   phoneNumbers: number;
@@ -40,10 +41,10 @@ export default function DashboardPage({ params }: DashboardPageProps) {
     async function fetchStats() {
       try {
         const [phoneNumbersRes, agentsRes, callsRes, conversationsRes] = await Promise.all([
-          fetch("/api/phone-numbers?limit=1"),
-          fetch("/api/agents?limit=1"),
-          fetch("/api/calls?limit=1"),
-          fetch("/api/conversations?limit=1"),
+          apiFetch("/api/phone-numbers?limit=1"),
+          apiFetch("/api/agents?limit=1"),
+          apiFetch("/api/calls?limit=1"),
+          apiFetch("/api/conversations?limit=1"),
         ]);
 
         const [phoneNumbers, agents, calls, conversations] = await Promise.all([

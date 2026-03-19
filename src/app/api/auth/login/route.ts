@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
     const token = generateToken({ userId: user.id, email: user.email, role: user.role });
     await setAuthCookie(token);
 
+    // Also return the token for client-side storage
     const { password_hash: _, ...userWithoutPassword } = user;
-    return ok({ success: true, user: userWithoutPassword });
+    return ok({ success: true, user: userWithoutPassword, token });
   } catch (error) {
     console.error('[Login] Error:', error);
     return Err.internal();

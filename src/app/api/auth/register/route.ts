@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { password_hash: _, ...userWithoutPassword } = newUser;
-    return ok({ success: true, user: userWithoutPassword });
+    return ok({ success: true, user: userWithoutPassword, token });
   } catch (error) {
     console.error('[Register] Error:', error);
     return Err.internal();

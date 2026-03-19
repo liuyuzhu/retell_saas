@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
   const fetchConfigs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/config", { credentials: 'include' });
+      const res = await apiFetch("/api/admin/config", { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403) {
           toast.error("无权限访问");
@@ -112,7 +113,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
   const handleSave = async (key: string, value: string) => {
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await apiFetch("/api/admin/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
@@ -144,7 +145,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
         config_value: c.config_value,
       }));
 
-      const res = await fetch("/api/admin/config", {
+      const res = await apiFetch("/api/admin/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
@@ -173,7 +174,7 @@ export default function SettingsPage({ params }: SettingsPageProps) {
 
     setSaving(true);
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await apiFetch("/api/admin/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',

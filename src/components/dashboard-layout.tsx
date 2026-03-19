@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
+import { authFetch, clearAuth } from "@/lib/auth-client";
 
 export interface AuthUser {
   id: string;
@@ -77,6 +78,7 @@ function clearCachedUser() {
   if (typeof window !== 'undefined') {
     try {
       localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_timestamp');
     } catch (e) {
       console.warn('Failed to clear localStorage:', e);
@@ -97,8 +99,8 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
     verifyingRef.current = true;
 
     try {
-      const res = await fetch("/api/auth/me", {
-        credentials: "include",
+      // Use authFetch to include Bearer token from localStorage
+      const res = await authFetch("/api/auth/me", {
         cache: "no-store",
       });
 
@@ -114,6 +116,7 @@ export function DashboardLayout({ children, locale }: DashboardLayoutProps) {
 
       // Not authenticated — clear cache and redirect
       clearCachedUser();
+      clearAuth();
       router.replace(`/${locale}/login`);
     } catch {
       // Network error: fall back to cache if available, else redirect

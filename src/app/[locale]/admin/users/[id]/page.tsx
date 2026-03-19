@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api-fetch";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents", { credentials: 'include' });
+      const res = await apiFetch("/api/agents", { credentials: 'include' });
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -129,7 +130,7 @@ export default function UserDetailsPage({ params }: UserDetailsPageProps) {
 
   const fetchPhoneNumbers = async () => {
     try {
-      const res = await fetch("/api/phone-numbers", { credentials: 'include' });
+      const res = await apiFetch("/api/phone-numbers", { credentials: 'include' });
       const data = await res.json();
       setPhoneNumbers(data.data || []);
     } catch (error) {
