@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
+import { getRetellClient } from '@/lib/retell-client';
 
 // GET /api/voices - List all voices
 export async function GET(request: NextRequest) {
@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const cursor = searchParams.get('cursor') || undefined;
 
+    const retellClient = getRetellClient();
     const result = await retellClient.listVoices({ limit, cursor });
     
     return NextResponse.json(result);

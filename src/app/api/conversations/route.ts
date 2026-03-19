@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
+import { getRetellClient } from '@/lib/retell-client';
 import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Admin can see all conversations
     if (currentUser.role === 'admin') {
+      const retellClient = getRetellClient();
       const result = await retellClient.listConversations({
         limit,
         cursor,
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all conversations from Retell API
+    const retellClient = getRetellClient();
     const result = await retellClient.listConversations({
       limit,
       cursor,
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     });
     
     // Filter conversations based on assigned agents
-    const filteredConversations = result.data?.filter(conv => {
+    const filteredConversations = result.data?.filter((conv: { agent_id?: string }) => {
       return conv.agent_id && agentIds.has(conv.agent_id);
     }) || [];
 

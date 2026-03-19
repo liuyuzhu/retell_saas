@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
+import { getRetellClient } from '@/lib/retell-client';
 
 // GET /api/voices/[id] - Get a specific voice
 export async function GET(
@@ -9,6 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
     
+    const retellClient = getRetellClient();
     const result = await retellClient.getVoice(id);
     
     return NextResponse.json(result);

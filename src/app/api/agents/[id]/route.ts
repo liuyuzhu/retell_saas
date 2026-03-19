@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
-import { UpdateAgentRequest } from '@/lib/retell-types';
-import { getCurrentUser, isPrimaryAccount } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getRetellClient } from '@/lib/retell-client';
+import { withAuth, withPrimary, ok, Err } from '@/lib/api-helpers';
+import type { UpdateAgentRequest } from '@/lib/retell-types';
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
-// Helper function to check if user has access to agent
-async function hasAgentAccess(userId: string, agentId: string, isPrimary: boolean): Promise<boolean> {
-  if (isPrimary) return true;
-  
+async function hasAgentAccess(agentId: string, userId: string, isAdminOrPrimary: boolean): Promise<boolean> {
+  if (isAdminOrPrimary) return true;
   const client = getSupabaseClient();
   const { data } = await client
     .from('user_agents')
@@ -19,106 +13,50 @@ async function hasAgentAccess(userId: string, agentId: string, isPrimary: boolea
     .eq('user_id', userId)
     .eq('agent_id', agentId)
     .single();
-  
   return !!data;
 }
 
-// GET /api/agents/[id] - Get a specific agent (with access control)
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+// ─── GET /api/agents/[id] ─────────────────────────────────────────────────────
 
-    const { id } = await params;
-    const isPrimary = isPrimaryAccount(currentUser.email);
-    
-    // Check access
-    const hasAccess = await hasAgentAccess(currentUser.userId, id, isPrimary || currentUser.role === 'admin');
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Agent not found or access denied' },
-        { status: 404 }
-      );
-    }
-    
-    const result = await retellClient.getAgent(id);
-    
-    // Add management permission flag
-    return NextResponse.json({
-      ...result,
-      canManage: isPrimary, // Only primary account can modify
-    });
-  } catch (error) {
-    console.error('Error getting agent:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get agent' },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withAuth(async (_req: NextRequest, ctx, params) => {
+  const id = params?.id;
+  if (!id) return Err.badRequest('Agent ID is required.');
 
-// PATCH /api/agents/[id] - Update an agent (PRIMARY ACCOUNT ONLY)
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Only primary account can update agents
-    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only the primary account owner can update agents.' },
-        { status: 403 }
-      );
-    }
+  const access = await hasAgentAccess(id, ctx.user.userId, ctx.isAdmin || ctx.isPrimary);
+  if (!access) return Err.notFound('Agent not found or access denied.');
 
-    const { id } = await params;
-    const body: UpdateAgentRequest = await request.json();
-    
-    const result = await retellClient.updateAgent(id, body);
-    
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Error updating agent:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update agent' },
-      { status: 500 }
-    );
-  }
-}
+  const retell = getRetellClient();
+  const result = await retell.getAgent(id);
+  return ok({ ...result, canManage: ctx.isPrimary });
+});
 
-// DELETE /api/agents/[id] - Delete an agent (PRIMARY ACCOUNT ONLY)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Only primary account can delete agents
-    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only the primary account owner can delete agents.' },
-        { status: 403 }
-      );
-    }
+// ─── PATCH /api/agents/[id] — primary only ────────────────────────────────────
 
-    const { id } = await params;
-    const client = getSupabaseClient();
-    
-    // Delete agent from Retell
-    await retellClient.deleteAgent(id);
-    
-    // Remove agent assignments from users
-    await client.from('user_agents').delete().eq('agent_id', id);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting agent:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete agent' },
-      { status: 500 }
-    );
-  }
-}
+export const PATCH = withPrimary(async (request: NextRequest, _ctx, params) => {
+  const id = params?.id;
+  if (!id) return Err.badRequest('Agent ID is required.');
+
+  let body: unknown;
+  try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
+
+  const retell = getRetellClient();
+  const result = await retell.updateAgent(id, body as UpdateAgentRequest);
+  return ok(result);
+});
+
+// ─── DELETE /api/agents/[id] — primary only ───────────────────────────────────
+
+export const DELETE = withPrimary(async (_req: NextRequest, _ctx, params) => {
+  const id = params?.id;
+  if (!id) return Err.badRequest('Agent ID is required.');
+
+  const retell = getRetellClient();
+  const client = getSupabaseClient();
+
+  await Promise.all([
+    retell.deleteAgent(id),
+    client.from('user_agents').delete().eq('agent_id', id),
+  ]);
+
+  return ok({ success: true });
+});

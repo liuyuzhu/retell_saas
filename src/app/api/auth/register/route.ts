@@ -1,104 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth';
+import { hashPassword, generateToken, setAuthCookie, isPrimaryAccount } from '@/lib/auth';
 import { sendWelcomeEmail } from '@/lib/email';
+import { ok, Err } from '@/lib/api-helpers';
+import { RegisterSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password, name, phone } = body;
+    let body: unknown;
+    try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
 
-    // Validation
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
-    }
+    const parsed = RegisterSchema.safeParse(body);
+    if (!parsed.success) return Err.badRequest(parsed.error.issues[0]?.message ?? 'Invalid input.');
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
-        { status: 400 }
-      );
-    }
+    const { email, password, name, phone } = parsed.data;
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
+    // Prevent self-registering as the primary admin account
+    if (isPrimaryAccount(email)) {
+      return Err.forbidden('This email is reserved.');
     }
 
     const client = getSupabaseClient();
 
-    // Check if user already exists
-    const { data: existingUser } = await client
-      .from('users')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .single();
+    const { data: existing } = await client
+      .from('users').select('id').eq('email', email).limit(1).single();
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already registered' },
-        { status: 400 }
-      );
-    }
+    if (existing) return Err.badRequest('Email already registered.');
 
-    // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user
-    const { data: newUser, error: createError } = await client
+    const { data: newUser, error } = await client
       .from('users')
       .insert({
-        email: email.toLowerCase(),
+        email,
         password_hash: passwordHash,
-        name: name || email.split('@')[0],
-        phone: phone || null,
-        role: 'user', // Default role is user, not admin
+        name: name ?? email.split('@')[0],
+        phone: phone ?? null,
+        role: 'user',
         is_active: true,
       })
       .select()
       .single();
 
-    if (createError || !newUser) {
-      console.error('Error creating user:', createError);
-      return NextResponse.json(
-        { error: 'Failed to create user' },
-        { status: 500 }
-      );
+    if (error || !newUser) {
+      console.error('[Register] Create error:', error);
+      return Err.internal();
     }
 
-    // Generate JWT token
-    const token = generateToken({
-      userId: newUser.id,
-      email: newUser.email,
-      role: newUser.role,
-    });
-
-    // Set auth cookie
+    const token = generateToken({ userId: newUser.id, email: newUser.email, role: newUser.role });
     await setAuthCookie(token);
 
-    // Send welcome email (async, don't wait)
-    const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] || 'en';
-    sendWelcomeEmail(newUser.email, newUser.name || 'User', locale).catch(console.error);
-
-    // Return user info (without password hash)
-    const { password_hash: _, ...userWithoutPassword } = newUser;
-
-    return NextResponse.json({
-      success: true,
-      user: userWithoutPassword,
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    // Fire-and-forget welcome email
+    const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? 'en';
+    sendWelcomeEmail(newUser.email, newUser.name ?? 'User', locale).catch(e =>
+      console.error('[Register] Welcome email failed:', e)
     );
+
+    const { password_hash: _, ...userWithoutPassword } = newUser;
+    return ok({ success: true, user: userWithoutPassword });
+  } catch (error) {
+    console.error('[Register] Error:', error);
+    return Err.internal();
   }
 }

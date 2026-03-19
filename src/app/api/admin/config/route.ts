@@ -1,181 +1,85 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { getCurrentUser } from '@/lib/auth';
+import { withAdmin, ok, Err } from '@/lib/api-helpers';
+import { UpdateConfigsSchema, CreateConfigSchema } from '@/lib/validation';
 
-// GET /api/admin/config - Get all configurations (admin only)
-export async function GET(request: NextRequest) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
-    }
+// ─── GET /api/admin/config ────────────────────────────────────────────────────
 
-    const client = getSupabaseClient();
-    const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get('category');
+export const GET = withAdmin(async (request: NextRequest) => {
+  const client = getSupabaseClient();
+  const category = request.nextUrl.searchParams.get('category');
 
-    let query = client
-      .from('system_configs')
-      .select('*')
-      .order('category')
-      .order('config_key');
+  let query = client.from('system_configs').select('*').order('category').order('config_key');
+  if (category) query = query.eq('category', category);
 
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data: configs, error } = await query;
-
-    if (error) {
-      console.error('Error fetching configs:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch configurations' },
-        { status: 500 }
-      );
-    }
-
-    // Group by category
-    const groupedConfigs = configs?.reduce((acc, config) => {
-      if (!acc[config.category]) {
-        acc[config.category] = [];
-      }
-      acc[config.category].push(config);
-      return acc;
-    }, {} as Record<string, typeof configs>);
-
-    return NextResponse.json({
-      success: true,
-      data: configs,
-      grouped: groupedConfigs,
-    });
-  } catch (error) {
-    console.error('Get configs error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  const { data: configs, error } = await query;
+  if (error) {
+    console.error('[Admin Config] Fetch error:', error);
+    return Err.internal();
   }
-}
 
-// PATCH /api/admin/config - Update configurations (admin only)
-export async function PATCH(request: NextRequest) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
-    }
+  const grouped = (configs ?? []).reduce((acc, cfg) => {
+    acc[cfg.category] = acc[cfg.category] ?? [];
+    acc[cfg.category].push(cfg);
+    return acc;
+  }, {} as Record<string, typeof configs>);
 
-    const body = await request.json();
-    const { configs } = body; // Array of { config_key, config_value }
+  return ok({ success: true, data: configs, grouped });
+});
 
-    if (!configs || !Array.isArray(configs)) {
-      return NextResponse.json(
-        { error: 'Invalid request body. Expected { configs: [...] }' },
-        { status: 400 }
-      );
-    }
+// ─── PATCH /api/admin/config — bulk update ────────────────────────────────────
 
-    const client = getSupabaseClient();
-    const results = [];
+export const PATCH = withAdmin(async (request: NextRequest) => {
+  let body: unknown;
+  try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
 
-    for (const config of configs) {
-      const { config_key, config_value } = config;
-      
-      if (!config_key) continue;
+  const parsed = UpdateConfigsSchema.safeParse(body);
+  if (!parsed.success) return Err.badRequest(parsed.error.issues[0]?.message ?? 'Invalid input.');
 
-      const { data, error } = await client
-        .from('system_configs')
-        .update({ config_value, updated_at: new Date().toISOString() })
-        .eq('config_key', config_key)
-        .select()
-        .single();
+  const client = getSupabaseClient();
+  const { configs } = parsed.data;
 
-      if (!error && data) {
-        results.push(data);
-      }
-    }
+  // Execute all updates in parallel instead of sequential for-loop
+  const results = await Promise.all(
+    configs
+      .filter(c => c.config_key)
+      .map(({ config_key, config_value }) =>
+        client
+          .from('system_configs')
+          .update({ config_value, updated_at: new Date().toISOString() })
+          .eq('config_key', config_key)
+          .select()
+          .single()
+      )
+  );
 
-    return NextResponse.json({
-      success: true,
-      updated: results.length,
-      data: results,
-    });
-  } catch (error) {
-    console.error('Update configs error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  const updated = results.filter(r => !r.error && r.data).map(r => r.data!);
+  const failed = results.filter(r => r.error).length;
+
+  if (failed > 0) {
+    console.warn(`[Admin Config] ${failed} updates failed out of ${configs.length}`);
   }
-}
 
-// POST /api/admin/config - Create new configuration (admin only)
-export async function POST(request: NextRequest) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
-    }
+  return ok({ success: true, updated: updated.length, failed, data: updated });
+});
 
-    const body = await request.json();
-    const { config_key, config_value, description, category, is_public } = body;
+// ─── POST /api/admin/config — create new config ───────────────────────────────
 
-    if (!config_key) {
-      return NextResponse.json(
-        { error: 'config_key is required' },
-        { status: 400 }
-      );
-    }
+export const POST = withAdmin(async (request: NextRequest) => {
+  let body: unknown;
+  try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
 
-    const client = getSupabaseClient();
+  const parsed = CreateConfigSchema.safeParse(body);
+  if (!parsed.success) return Err.badRequest(parsed.error.issues[0]?.message ?? 'Invalid input.');
 
-    const { data, error } = await client
-      .from('system_configs')
-      .insert({
-        config_key,
-        config_value: config_value || '',
-        description: description || '',
-        category: category || 'general',
-        is_public: is_public || false,
-      })
-      .select()
-      .single();
+  const client = getSupabaseClient();
+  const { data, error } = await client.from('system_configs').insert(parsed.data).select().single();
 
-    if (error) {
-      console.error('Error creating config:', error);
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'Configuration key already exists' },
-          { status: 400 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Failed to create configuration' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    console.error('Create config error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  if (error) {
+    if (error.code === '23505') return Err.badRequest('Configuration key already exists.');
+    console.error('[Admin Config] Create error:', error);
+    return Err.internal();
   }
-}
+
+  return ok({ success: true, data });
+});

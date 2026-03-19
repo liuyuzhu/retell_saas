@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { ok, Err } from '@/lib/api-helpers';
 
-// GET /api/config/public - Get public configurations (no auth required)
+// No auth — public config endpoint (only returns rows marked is_public=true)
 export async function GET() {
   try {
     const client = getSupabaseClient();
@@ -12,28 +12,18 @@ export async function GET() {
       .eq('is_public', true);
 
     if (error) {
-      console.error('Error fetching public configs:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch configurations' },
-        { status: 500 }
-      );
+      console.error('[Public Config] Fetch error:', error);
+      return Err.internal();
     }
 
-    // Convert to key-value object
-    const publicConfig = configs?.reduce((acc, config) => {
-      acc[config.config_key] = config.config_value;
+    const data = (configs ?? []).reduce((acc, cfg) => {
+      acc[cfg.config_key] = cfg.config_value;
       return acc;
     }, {} as Record<string, string>);
 
-    return NextResponse.json({
-      success: true,
-      data: publicConfig,
-    });
+    return ok({ success: true, data });
   } catch (error) {
-    console.error('Get public configs error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Public Config] Error:', error);
+    return Err.internal();
   }
 }

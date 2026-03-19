@@ -1,20 +1,46 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { User } from '@/storage/database/shared/schema';
+import { randomBytes } from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const SALT_ROUNDS = 12;
+// ─── Config ──────────────────────────────────────────────────────────────────
 
-// Primary account - the only account with configuration privileges
-export const PRIMARY_ACCOUNT_EMAIL = 'liuyuzhu19882@gmail.com';
-
-// Check if user is the primary account owner
-export function isPrimaryAccount(email: string): boolean {
-  return email.toLowerCase() === PRIMARY_ACCOUNT_EMAIL.toLowerCase();
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('[Auth] JWT_SECRET is not set. Generate: openssl rand -base64 64');
+  return secret;
 }
 
-// Password hashing
+export function getPrimaryAccountEmail(): string {
+  const email = process.env.PRIMARY_ACCOUNT_EMAIL;
+  if (!email) throw new Error('[Auth] PRIMARY_ACCOUNT_EMAIL is not set.');
+  return email.toLowerCase();
+}
+
+const SALT_ROUNDS = 12;
+const COOKIE_NAME = 'auth_token';
+const TOKEN_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  role: string;
+}
+
+// ─── Primary account ─────────────────────────────────────────────────────────
+
+export function isPrimaryAccount(email: string): boolean {
+  try {
+    return email.toLowerCase() === getPrimaryAccountEmail();
+  } catch {
+    return false;
+  }
+}
+
+// ─── Password ────────────────────────────────────────────────────────────────
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
@@ -23,68 +49,70 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-// JWT Token
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  role: string;
+/**
+ * Returns an error message or null if valid.
+ */
+export function validatePasswordStrength(password: string): string | null {
+  if (password.length < 8) return 'Password must be at least 8 characters.';
+  if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
+  if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
+  return null;
 }
 
+// ─── JWT ─────────────────────────────────────────────────────────────────────
+
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: TOKEN_TTL });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    return jwt.verify(token, getJwtSecret()) as JWTPayload;
   } catch {
     return null;
   }
 }
 
-// Cookie-based session
+// ─── Cookie ──────────────────────────────────────────────────────────────────
+
 export async function setAuthCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set('auth_token', token, {
+  const store = await cookies();
+  store.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: TOKEN_TTL,
     path: '/',
   });
 }
 
 export async function getAuthCookie(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get('auth_token')?.value || null;
+  const store = await cookies();
+  return store.get(COOKIE_NAME)?.value ?? null;
 }
 
 export async function clearAuthCookie() {
-  const cookieStore = await cookies();
-  cookieStore.delete('auth_token');
+  const store = await cookies();
+  store.delete(COOKIE_NAME);
 }
 
-// Get current user from request
+// ─── Session ─────────────────────────────────────────────────────────────────
+
 export async function getCurrentUser(): Promise<JWTPayload | null> {
   const token = await getAuthCookie();
   if (!token) return null;
   return verifyToken(token);
 }
 
-// Check if current user is the primary account owner
-export async function isPrimaryAccountOwner(): Promise<boolean> {
-  const user = await getCurrentUser();
-  if (!user) return false;
-  return isPrimaryAccount(user.email);
-}
-
-// Check if user is admin
 export async function isAdmin(): Promise<boolean> {
   const user = await getCurrentUser();
   return user?.role === 'admin';
 }
 
-// Generate password reset token
+// ─── Password reset ───────────────────────────────────────────────────────────
+
+/** Generates a cryptographically secure 64-char hex token. */
 export function generateResetToken(): string {
-  return bcrypt.genSaltSync(32).replace(/[\/\.$]/g, '') + Date.now().toString(36);
+  return randomBytes(32).toString('hex');
 }

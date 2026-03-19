@@ -1,17 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
-import { UpdatePhoneNumberRequest } from '@/lib/retell-types';
-import { getCurrentUser, isPrimaryAccount } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getRetellClient } from '@/lib/retell-client';
+import { withAuth, withPrimary, ok, Err } from '@/lib/api-helpers';
+import type { UpdatePhoneNumberRequest } from '@/lib/retell-types';
 
-interface RouteParams {
-  params: Promise<{ number: string }>;
-}
-
-// Helper function to check if user has access to phone number
-async function hasPhoneAccess(userId: string, phoneNumber: string, isPrimary: boolean): Promise<boolean> {
-  if (isPrimary) return true;
-  
+async function hasPhoneAccess(phoneNumber: string, userId: string, isAdminOrPrimary: boolean): Promise<boolean> {
+  if (isAdminOrPrimary) return true;
   const client = getSupabaseClient();
   const { data } = await client
     .from('user_phone_numbers')
@@ -19,109 +13,50 @@ async function hasPhoneAccess(userId: string, phoneNumber: string, isPrimary: bo
     .eq('user_id', userId)
     .eq('phone_number', phoneNumber)
     .single();
-  
   return !!data;
 }
 
-// GET /api/phone-numbers/[number] - Get a specific phone number (with access control)
-export async function GET(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+// ─── GET /api/phone-numbers/[number] ─────────────────────────────────────────
 
-    const { number } = await params;
-    const decodedNumber = decodeURIComponent(number);
-    const isPrimary = isPrimaryAccount(currentUser.email);
-    
-    // Check access
-    const hasAccess = await hasPhoneAccess(currentUser.userId, decodedNumber, isPrimary || currentUser.role === 'admin');
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Phone number not found or access denied' },
-        { status: 404 }
-      );
-    }
-    
-    const result = await retellClient.getPhoneNumber(decodedNumber);
-    
-    // Add management permission flag
-    return NextResponse.json({
-      ...result,
-      canManage: isPrimary, // Only primary account can modify
-    });
-  } catch (error) {
-    console.error('Error getting phone number:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get phone number' },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withAuth(async (_req: NextRequest, ctx, params) => {
+  const number = params?.number;
+  if (!number) return Err.badRequest('Phone number is required.');
 
-// PATCH /api/phone-numbers/[number] - Update a phone number (PRIMARY ACCOUNT ONLY)
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Only primary account can update phone numbers
-    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only the primary account owner can update phone numbers.' },
-        { status: 403 }
-      );
-    }
+  const access = await hasPhoneAccess(number, ctx.user.userId, ctx.isAdmin || ctx.isPrimary);
+  if (!access) return Err.notFound('Phone number not found or access denied.');
 
-    const { number } = await params;
-    const decodedNumber = decodeURIComponent(number);
-    const body: UpdatePhoneNumberRequest = await request.json();
-    
-    const result = await retellClient.updatePhoneNumber(decodedNumber, body);
-    
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Error updating phone number:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update phone number' },
-      { status: 500 }
-    );
-  }
-}
+  const retell = getRetellClient();
+  const result = await retell.getPhoneNumber(number);
+  return ok({ ...result, canManage: ctx.isPrimary });
+});
 
-// DELETE /api/phone-numbers/[number] - Delete a phone number (PRIMARY ACCOUNT ONLY)
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Only primary account can delete phone numbers
-    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only the primary account owner can delete phone numbers.' },
-        { status: 403 }
-      );
-    }
+// ─── PATCH /api/phone-numbers/[number] — primary only ────────────────────────
 
-    const { number } = await params;
-    const decodedNumber = decodeURIComponent(number);
-    const client = getSupabaseClient();
-    
-    // Delete phone number from Retell
-    await retellClient.deletePhoneNumber(decodedNumber);
-    
-    // Remove phone number assignments from users
-    await client.from('user_phone_numbers').delete().eq('phone_number', decodedNumber);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting phone number:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete phone number' },
-      { status: 500 }
-    );
-  }
-}
+export const PATCH = withPrimary(async (request: NextRequest, _ctx, params) => {
+  const number = params?.number;
+  if (!number) return Err.badRequest('Phone number is required.');
+
+  let body: unknown;
+  try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
+
+  const retell = getRetellClient();
+  const result = await retell.updatePhoneNumber(number, body as UpdatePhoneNumberRequest);
+  return ok(result);
+});
+
+// ─── DELETE /api/phone-numbers/[number] — primary only ───────────────────────
+
+export const DELETE = withPrimary(async (_req: NextRequest, _ctx, params) => {
+  const number = params?.number;
+  if (!number) return Err.badRequest('Phone number is required.');
+
+  const retell = getRetellClient();
+  const client = getSupabaseClient();
+
+  await Promise.all([
+    retell.deletePhoneNumber(number),
+    client.from('user_phone_numbers').delete().eq('phone_number', number),
+  ]);
+
+  return ok({ success: true });
+});

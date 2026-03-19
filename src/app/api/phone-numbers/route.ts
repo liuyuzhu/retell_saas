@@ -1,99 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
-import { CreatePhoneNumberRequest } from '@/lib/retell-types';
-import { getCurrentUser, isPrimaryAccount, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getRetellClient } from '@/lib/retell-client';
+import { withAuth, withPrimary, ok, Err } from '@/lib/api-helpers';
+import type { CreatePhoneNumberRequest } from '@/lib/retell-types';
 
-// GET /api/phone-numbers - List phone numbers (with data isolation)
-export async function GET(request: NextRequest) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Not authenticated - return empty list
-    if (!currentUser) {
-      return NextResponse.json({ data: [], has_more: false });
-    }
+// ─── GET /api/phone-numbers ───────────────────────────────────────────────────
 
-    const client = getSupabaseClient();
-    const isPrimary = isPrimaryAccount(currentUser.email);
+export const GET = withAuth(async (_req: NextRequest, ctx) => {
+  const retell = getRetellClient();
 
-    // Primary account or admin can see all phone numbers
-    if (isPrimary || currentUser.role === 'admin') {
-      const searchParams = request.nextUrl.searchParams;
-      const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
-      const cursor = searchParams.get('cursor') || undefined;
-
-      const result = await retellClient.listPhoneNumbers({ limit, cursor });
-      
-      // Add flag to indicate if user can manage phone numbers
-      return NextResponse.json({
-        ...result,
-        canManage: isPrimary,
-        primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
-      });
-    }
-
-    // Regular user - only see assigned phone numbers
-    const { data: userPhoneNumbers } = await client
-      .from('user_phone_numbers')
-      .select('phone_number')
-      .eq('user_id', currentUser.userId);
-
-    if (!userPhoneNumbers || userPhoneNumbers.length === 0) {
-      return NextResponse.json({ data: [], has_more: false, canManage: false });
-    }
-
-    // Get all phone numbers from Retell API
-    const result = await retellClient.listPhoneNumbers({});
-    
-    // Filter to only show assigned phone numbers
-    const assignedNumbers = new Set(userPhoneNumbers.map(upn => upn.phone_number));
-    const filteredNumbers = result.data?.filter(pn => assignedNumbers.has(pn.phone_number)) || [];
-
-    return NextResponse.json({
-      data: filteredNumbers,
-      has_more: false,
-      canManage: false, // Regular users cannot create/delete phone numbers
-    });
-  } catch (error) {
-    console.error('Error listing phone numbers:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to list phone numbers' },
-      { status: 500 }
-    );
+  if (ctx.isAdmin || ctx.isPrimary) {
+    const result = await retell.listPhoneNumbers({});
+    return ok({ ...result, canManage: ctx.isPrimary });
   }
-}
 
-// POST /api/phone-numbers - Create a new phone number (PRIMARY ACCOUNT ONLY)
-export async function POST(request: NextRequest) {
-  try {
-    const currentUser = await getCurrentUser();
-    
-    // Only primary account can create phone numbers
-    if (!currentUser || !isPrimaryAccount(currentUser.email)) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only the primary account owner can create phone numbers.' },
-        { status: 403 }
-      );
-    }
+  const client = getSupabaseClient();
+  const { data: assignments } = await client
+    .from('user_phone_numbers')
+    .select('phone_number')
+    .eq('user_id', ctx.user.userId);
 
-    const body: CreatePhoneNumberRequest = await request.json();
-    
-    if (!body.phone_number) {
-      return NextResponse.json(
-        { error: 'phone_number is required' },
-        { status: 400 }
-      );
-    }
-
-    const result = await retellClient.createPhoneNumber(body);
-    
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Error creating phone number:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create phone number' },
-      { status: 500 }
-    );
+  if (!assignments || assignments.length === 0) {
+    return ok({ data: [], has_more: false, canManage: false });
   }
-}
+
+  const assignedNums = new Set(assignments.map(a => a.phone_number));
+  const result = await retell.listPhoneNumbers({});
+  const filtered = (result.data ?? []).filter(pn => assignedNums.has(pn.phone_number));
+
+  return ok({ data: filtered, has_more: false, canManage: false });
+});
+
+// ─── POST /api/phone-numbers — primary only ───────────────────────────────────
+
+export const POST = withPrimary(async (request: NextRequest) => {
+  let body: unknown;
+  try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
+
+  const { phone_number } = body as CreatePhoneNumberRequest;
+  if (!phone_number) return Err.badRequest('phone_number is required.');
+
+  const retell = getRetellClient();
+  const result = await retell.createPhoneNumber(body as CreatePhoneNumberRequest);
+  return ok(result);
+});

@@ -1,133 +1,104 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { hashPassword, PRIMARY_ACCOUNT_EMAIL } from '@/lib/auth';
+/**
+ * POST /api/admin/setup-primary
+ * Creates or updates the primary (super-admin) account.
+ *
+ * Requires SETUP_SECRET in request body.
+ * Does NOT return the password in the response.
+ *
+ * GET /api/admin/setup-primary
+ * Returns the primary account status (admin only).
+ */
 
-// Setup primary account - creates or updates the primary account
+import { NextRequest } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { hashPassword, getPrimaryAccountEmail, validatePasswordStrength } from '@/lib/auth';
+import { withAdmin, ok, err, Err } from '@/lib/api-helpers';
+
+// ─── POST ─────────────────────────────────────────────────────────────────────
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const { email, password, name } = body;
+    const setupSecret = process.env.SETUP_SECRET;
+    if (!setupSecret) return err('SETUP_SECRET is not configured.', 500);
 
-    // Use provided email or default primary account email
-    const primaryEmail = email || PRIMARY_ACCOUNT_EMAIL;
-    const primaryPassword = password || 'Admin@123456';
-    const primaryName = name || 'Primary Administrator';
+    let body: Record<string, string> = {};
+    try { body = await request.json(); } catch { /* no body */ }
+
+    if (body.setupSecret !== setupSecret) return err('Invalid setup secret.', 403);
+
+    const primaryEmail = getPrimaryAccountEmail(); // from PRIMARY_ACCOUNT_EMAIL env
+    const primaryPassword = body.password || process.env.PRIMARY_ACCOUNT_PASSWORD;
+    const primaryName = body.name || 'Primary Administrator';
+
+    if (!primaryPassword) {
+      return err('Provide a password in the request body or set PRIMARY_ACCOUNT_PASSWORD.', 400);
+    }
+
+    const passwordError = validatePasswordStrength(primaryPassword);
+    if (passwordError) return err(passwordError, 400);
 
     const client = getSupabaseClient();
+    const passwordHash = await hashPassword(primaryPassword);
 
-    // Check if user already exists
-    const { data: existingUser } = await client
+    const { data: existing } = await client
       .from('users')
-      .select('id, email')
-      .eq('email', primaryEmail.toLowerCase())
+      .select('id')
+      .eq('email', primaryEmail)
+      .limit(1)
       .single();
 
-    if (existingUser) {
-      // Update existing user to be admin and update password
-      const passwordHash = await hashPassword(primaryPassword);
-      
-      const { data: updatedUser, error: updateError } = await client
+    if (existing) {
+      const { data: updated, error } = await client
         .from('users')
-        .update({
-          password_hash: passwordHash,
-          role: 'admin',
-          is_active: true,
-          name: primaryName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingUser.id)
+        .update({ password_hash: passwordHash, role: 'admin', is_active: true, name: primaryName, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
         .select('id, email, name, role')
         .single();
 
-      if (updateError) {
-        console.error('Error updating primary account:', updateError);
-        return NextResponse.json(
-          { error: 'Failed to update primary account' },
-          { status: 500 }
-        );
+      if (error || !updated) {
+        console.error('[Setup Primary] Update error:', error);
+        return Err.internal();
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Primary account updated successfully',
-        user: updatedUser,
-        credentials: {
-          email: primaryEmail,
-          password: primaryPassword,
-        },
-      });
+      return ok({ success: true, message: 'Primary account updated.', user: updated });
     }
 
-    // Create new primary account
-    const passwordHash = await hashPassword(primaryPassword);
-
-    const { data: newUser, error: createError } = await client
+    const { data: created, error: createError } = await client
       .from('users')
-      .insert({
-        email: primaryEmail.toLowerCase(),
-        password_hash: passwordHash,
-        name: primaryName,
-        role: 'admin',
-        is_active: true,
-      })
+      .insert({ email: primaryEmail, password_hash: passwordHash, name: primaryName, role: 'admin', is_active: true })
       .select('id, email, name, role')
       .single();
 
-    if (createError) {
-      console.error('Error creating primary account:', createError);
-      return NextResponse.json(
-        { error: 'Failed to create primary account' },
-        { status: 500 }
-      );
+    if (createError || !created) {
+      console.error('[Setup Primary] Create error:', createError);
+      return Err.internal();
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Primary account created successfully',
-      user: newUser,
-      credentials: {
-        email: primaryEmail,
-        password: primaryPassword,
-      },
-    });
+    return ok({ success: true, message: 'Primary account created.', user: created });
   } catch (error) {
-    console.error('Setup primary account error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Setup Primary] Error:', error);
+    return Err.internal();
   }
 }
 
-// Get primary account status
-export async function GET() {
-  try {
-    const client = getSupabaseClient();
+// ─── GET — primary account status (admin only) ────────────────────────────────
 
-    const { data: primaryUser, error } = await client
-      .from('users')
-      .select('id, email, name, role, is_active, created_at')
-      .eq('email', PRIMARY_ACCOUNT_EMAIL.toLowerCase())
-      .single();
+export const GET = withAdmin(async () => {
+  const client = getSupabaseClient();
 
-    if (error || !primaryUser) {
-      return NextResponse.json({
-        exists: false,
-        primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
-        message: 'Primary account not found. Use POST to create it.',
-      });
-    }
+  let primaryEmail: string;
+  try { primaryEmail = getPrimaryAccountEmail(); }
+  catch { return err('PRIMARY_ACCOUNT_EMAIL is not configured.', 500); }
 
-    return NextResponse.json({
-      exists: true,
-      primaryAccountEmail: PRIMARY_ACCOUNT_EMAIL,
-      user: primaryUser,
-    });
-  } catch (error) {
-    console.error('Get primary account error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  const { data: user } = await client
+    .from('users')
+    .select('id, email, name, role, is_active, created_at')
+    .eq('email', primaryEmail)
+    .single();
+
+  if (!user) {
+    return ok({ exists: false, primaryAccountEmail: primaryEmail });
   }
-}
+
+  return ok({ exists: true, primaryAccountEmail: primaryEmail, user });
+});

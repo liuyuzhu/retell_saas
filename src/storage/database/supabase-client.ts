@@ -1,115 +1,53 @@
+/**
+ * supabase-client.ts
+ * Provides a Supabase client configured from environment variables.
+ *
+ * Removed: execSync Python subprocess (was blocking the event loop and
+ * introduced shell-injection risk). Use standard env vars or dotenv instead.
+ */
+
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { execSync } from 'child_process';
 
-let envLoaded = false;
+// ─── Credentials ─────────────────────────────────────────────────────────────
 
-interface SupabaseCredentials {
-  url: string;
-  anonKey: string;
-}
+function getCredentials(): { url: string; anonKey: string } {
+  const url = process.env.COZE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const anonKey = process.env.COZE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
-function loadEnv(): void {
-  if (envLoaded || (process.env.COZE_SUPABASE_URL && process.env.COZE_SUPABASE_ANON_KEY)) {
-    return;
-  }
-
-  try {
-    try {
-      require('dotenv').config();
-      if (process.env.COZE_SUPABASE_URL && process.env.COZE_SUPABASE_ANON_KEY) {
-        envLoaded = true;
-        return;
-      }
-    } catch {
-      // dotenv not available
-    }
-
-    const pythonCode = `
-import os
-import sys
-try:
-    from coze_workload_identity import Client
-    client = Client()
-    env_vars = client.get_project_env_vars()
-    client.close()
-    for env_var in env_vars:
-        print(f"{env_var.key}={env_var.value}")
-except Exception as e:
-    print(f"# Error: {e}", file=sys.stderr)
-`;
-
-    const output = execSync(`python3 -c '${pythonCode.replace(/'/g, "'\"'\"'")}'`, {
-      encoding: 'utf-8',
-      timeout: 10000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    const lines = output.trim().split('\n');
-    for (const line of lines) {
-      if (line.startsWith('#')) continue;
-      const eqIndex = line.indexOf('=');
-      if (eqIndex > 0) {
-        const key = line.substring(0, eqIndex);
-        let value = line.substring(eqIndex + 1);
-        if ((value.startsWith("'") && value.endsWith("'")) ||
-            (value.startsWith('"') && value.endsWith('"'))) {
-          value = value.slice(1, -1);
-        }
-        if (!process.env[key]) {
-          process.env[key] = value;
-        }
-      }
-    }
-
-    envLoaded = true;
-  } catch {
-    // Silently fail
-  }
-}
-
-function getSupabaseCredentials(): SupabaseCredentials {
-  loadEnv();
-
-  const url = process.env.COZE_SUPABASE_URL;
-  const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
-
-  if (!url) {
-    throw new Error('COZE_SUPABASE_URL is not set');
-  }
-  if (!anonKey) {
-    throw new Error('COZE_SUPABASE_ANON_KEY is not set');
-  }
+  if (!url) throw new Error('[Supabase] SUPABASE_URL (or COZE_SUPABASE_URL) is not set.');
+  if (!anonKey) throw new Error('[Supabase] SUPABASE_ANON_KEY (or COZE_SUPABASE_ANON_KEY) is not set.');
 
   return { url, anonKey };
 }
 
-function getSupabaseClient(token?: string): SupabaseClient {
-  const { url, anonKey } = getSupabaseCredentials();
+// ─── Client factory ───────────────────────────────────────────────────────────
 
+const CLIENT_OPTIONS = {
+  auth: { autoRefreshToken: false, persistSession: false },
+};
+
+/**
+ * Returns a Supabase client.
+ * Uses a module-level singleton for the default (service) client
+ * to avoid re-creating the connection on every request.
+ */
+let _defaultClient: SupabaseClient | null = null;
+
+export function getSupabaseClient(token?: string): SupabaseClient {
+  const { url, anonKey } = getCredentials();
+
+  // Per-request client when a user token is provided (e.g. for RLS)
   if (token) {
     return createClient(url, anonKey, {
-      global: {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-      db: {
-        timeout: 60000,
-      },
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      ...CLIENT_OPTIONS,
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
   }
 
-  return createClient(url, anonKey, {
-    db: {
-      timeout: 60000,
-    },
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
+  // Singleton for server-side service calls
+  if (!_defaultClient) {
+    _defaultClient = createClient(url, anonKey, CLIENT_OPTIONS);
+  }
 
-export { loadEnv, getSupabaseCredentials, getSupabaseClient };
+  return _defaultClient;
+}

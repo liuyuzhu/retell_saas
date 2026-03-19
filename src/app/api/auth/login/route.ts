@@ -1,75 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { verifyPassword, generateToken, setAuthCookie } from '@/lib/auth';
+import { ok, err, Err } from '@/lib/api-helpers';
+import { LoginSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    let body: unknown;
+    try { body = await request.json(); } catch { return Err.badRequest('Request body is required.'); }
 
-    // Validation
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      );
-    }
+    const parsed = LoginSchema.safeParse(body);
+    if (!parsed.success) return Err.badRequest(parsed.error.issues[0]?.message ?? 'Invalid input.');
 
+    const { email, password } = parsed.data;
     const client = getSupabaseClient();
 
-    // Find user by email
     const { data: user, error } = await client
       .from('users')
       .select('*')
-      .eq('email', email.toLowerCase())
+      .eq('email', email)
       .single();
 
+    // Uniform error message to prevent user enumeration
     if (error || !user) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
+      return err('Invalid email or password.', 401);
     }
 
-    // Check if user is active
     if (!user.is_active) {
-      return NextResponse.json(
-        { error: 'Account is deactivated. Please contact administrator.' },
-        { status: 403 }
-      );
+      return err('Account is deactivated. Please contact the administrator.', 403);
     }
 
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.password_hash);
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) return err('Invalid email or password.', 401);
 
-    // Generate JWT token
-    const token = generateToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    });
-
-    // Set auth cookie
+    const token = generateToken({ userId: user.id, email: user.email, role: user.role });
     await setAuthCookie(token);
 
-    // Return user info (without password hash)
     const { password_hash: _, ...userWithoutPassword } = user;
-
-    return NextResponse.json({
-      success: true,
-      user: userWithoutPassword,
-    });
+    return ok({ success: true, user: userWithoutPassword });
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Login] Error:', error);
+    return Err.internal();
   }
 }

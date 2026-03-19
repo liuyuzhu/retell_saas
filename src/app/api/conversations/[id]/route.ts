@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { retellClient } from '@/lib/retell-client';
+import { getRetellClient } from '@/lib/retell-client';
 
 // GET /api/conversations/[id] - Get a specific conversation
 export async function GET(
@@ -9,6 +9,7 @@ export async function GET(
   try {
     const { id } = await params;
     
+    const retellClient = getRetellClient();
     const result = await retellClient.getConversation(id);
     
     return NextResponse.json(result);
@@ -29,6 +30,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     
+    const retellClient = getRetellClient();
     await retellClient.deleteConversation(id);
     
     return NextResponse.json({ success: true });
