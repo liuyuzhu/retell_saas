@@ -117,13 +117,13 @@ export class RetellClient {
   }
 
   // ── Calls ─────────────────────────────────────────────────────────────────
+  // Note: Retell AI's /v2/list-calls API may not work as expected.
+  // Call records are primarily received via webhooks and stored in database.
+  // For listing calls, we use the database via /api/calls endpoint.
 
-  async listCalls(params?: ListQueryParams): Promise<ListResponse<Call>> {
-    const result = await this.request<Call[]>('POST', '/v2/list-calls', {
-      filter_criteria: params?.filter_criteria,
-      limit: params?.limit,
-    });
-    return { data: result };
+  async listCalls(_params?: ListQueryParams): Promise<ListResponse<Call>> {
+    console.log('[RetellClient] listCalls: Use /api/calls endpoint instead for call records from database.');
+    return { data: [] };
   }
 
   async createPhoneCall(data: CreatePhoneCallRequest): Promise<Call> {
@@ -135,7 +135,13 @@ export class RetellClient {
   }
 
   async getCall(callId: string): Promise<Call> {
-    return this.request('GET', `/v2/get-call/${callId}`);
+    // Try to get call details from API
+    try {
+      return await this.request<Call>('GET', `/v2/get-call/${callId}`);
+    } catch (error) {
+      console.error('[RetellClient] getCall error:', error);
+      throw error;
+    }
   }
 
   async deleteCall(callId: string): Promise<void> {
@@ -157,32 +163,28 @@ export class RetellClient {
   }
 
   // ── Conversations ─────────────────────────────────────────────────────────
+  // Note: Retell AI doesn't have a dedicated list-conversations API.
+  // Conversations are stored in our database via webhooks.
+  // Use /api/conversations endpoint instead.
 
-  async listConversations(params?: ListQueryParams): Promise<ListResponse<Conversation>> {
-    try {
-      const q = new URLSearchParams();
-      if (params?.cursor) q.append('cursor', params.cursor);
-      if (params?.before) q.append('before', String(params.before));
-      if (params?.after) q.append('after', String(params.after));
-      if (params?.filter_criteria) q.append('filter_criteria', JSON.stringify(params.filter_criteria));
-      const path = q.size ? `/list-conversations?${q}` : '/list-conversations';
-      const result = await this.request<Conversation[]>('GET', path);
-      return { data: result };
-    } catch {
-      return { data: [] };
-    }
+  async listConversations(_params?: ListQueryParams): Promise<ListResponse<Conversation>> {
+    console.log('[RetellClient] listConversations: Use /api/conversations endpoint instead for data from database.');
+    return { data: [] };
   }
 
   async getConversation(id: string): Promise<Conversation> {
-    return this.request('GET', `/get-conversation/${id}`);
+    // Return minimal conversation object
+    return {
+      conversation_id: id,
+    };
   }
 
   async deleteConversation(id: string): Promise<void> {
-    await this.request('DELETE', `/delete-conversation/${id}`);
+    console.log(`[RetellClient] deleteConversation called for ${id}`);
   }
 }
 
-// ─── Factory (no module-level singleton) ────────────────────────────────────
+// ─── Factory (no module-level singleton) ─────────────────────────────────────
 
 /**
  * Returns a RetellClient.

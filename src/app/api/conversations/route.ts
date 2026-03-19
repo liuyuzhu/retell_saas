@@ -1,77 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRetellClient } from '@/lib/retell-client';
-import { getCurrentUser } from '@/lib/auth';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { withAuth, ok, Err } from '@/lib/api-helpers';
 
 // GET /api/conversations - List conversations (with data isolation)
-export async function GET(request: NextRequest) {
+// Note: Since Retell AI doesn't have a list-conversations API, we use the user_calls table
+// which is populated via webhooks.
+
+export const GET = withAuth(async (request: NextRequest, ctx) => {
+  const p = request.nextUrl.searchParams;
+  const limit = parseInt(p.get('limit') ?? '50');
+  const before = p.get('before') ? parseInt(p.get('before')!) : undefined;
+  const after = p.get('after') ? parseInt(p.get('after')!) : undefined;
+
+  const client = getSupabaseClient();
+
   try {
-    const currentUser = await getCurrentUser();
-    
-    // Not authenticated - return empty list
-    if (!currentUser) {
-      return NextResponse.json({ data: [], has_more: false });
+    let query = client
+      .from('user_calls')
+      .select('*', { count: 'exact' })
+      .order('start_timestamp', { ascending: false })
+      .limit(limit);
+
+    // Data isolation: tenants only see their own calls
+    if (!ctx.isAdmin) {
+      query = query.eq('user_id', ctx.user.userId);
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
-    const cursor = searchParams.get('cursor') || undefined;
-    const before = searchParams.get('before') ? parseInt(searchParams.get('before')!) : undefined;
-    const after = searchParams.get('after') ? parseInt(searchParams.get('after')!) : undefined;
-    const filterCriteria = searchParams.get('filter_criteria');
+    // Only show ended calls in conversations (ongoing calls shouldn't appear here)
+    query = query.eq('call_status', 'ended');
 
-    // Admin can see all conversations
-    if (currentUser.role === 'admin') {
-      const retellClient = getRetellClient();
-      const result = await retellClient.listConversations({
-        limit,
-        cursor,
-        before,
-        after,
-        filter_criteria: filterCriteria ? JSON.parse(filterCriteria) : undefined,
-      });
-      return NextResponse.json(result);
+    if (before) query = query.lt('start_timestamp', before);
+    if (after) query = query.gt('start_timestamp', after);
+
+    const { data: conversations, error, count } = await query;
+
+    if (error) {
+      console.error('[Conversations] DB error:', error);
+      // 如果表不存在，返回空列表而不是错误
+      if (error.code === 'PGRST204' || error.code === 'PGRST205') {
+        return ok({ data: [], has_more: false, count: 0 });
+      }
+      return Err.internal();
     }
 
-    // Regular user - only see conversations related to their assigned agents
-    const client = getSupabaseClient();
-
-    // Get user's assigned agents
-    const { data: userAgents } = await client
-      .from('user_agents')
-      .select('agent_id')
-      .eq('user_id', currentUser.userId);
-
-    const agentIds = new Set(userAgents?.map(ua => ua.agent_id) || []);
-
-    if (agentIds.size === 0) {
-      return NextResponse.json({ data: [], has_more: false });
-    }
-
-    // Get all conversations from Retell API
-    const retellClient = getRetellClient();
-    const result = await retellClient.listConversations({
-      limit,
-      cursor,
-      before,
-      after,
-      filter_criteria: filterCriteria ? JSON.parse(filterCriteria) : undefined,
-    });
-    
-    // Filter conversations based on assigned agents
-    const filteredConversations = result.data?.filter((conv: { agent_id?: string }) => {
-      return conv.agent_id && agentIds.has(conv.agent_id);
-    }) || [];
-
-    return NextResponse.json({
-      data: filteredConversations,
-      has_more: false,
-    });
-  } catch (error) {
-    console.error('Error listing conversations:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to list conversations' },
-      { status: 500 }
-    );
+    return ok({ data: conversations ?? [], has_more: false, count: count ?? 0 });
+  } catch (err) {
+    console.error('[Conversations] Unexpected error:', err);
+    return ok({ data: [], has_more: false, count: 0 });
   }
-}
+});

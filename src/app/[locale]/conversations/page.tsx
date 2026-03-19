@@ -18,10 +18,30 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { MessageSquare, RefreshCw, Trash2, Clock, User, Bot } from "lucide-react";
+import { MessageSquare, RefreshCw, Trash2, Clock, User, Bot, Phone, Video, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Conversation, TranscriptSegment } from "@/lib/retell-types";
+
+// Call record type from database (via webhook)
+interface CallRecord {
+  id: string;
+  user_id: string;
+  call_id: string;
+  call_type: string | null;
+  agent_id: string | null;
+  phone_number_id: string | null;
+  from_number: string | null;
+  to_number: string | null;
+  call_status: string;
+  start_timestamp: number | null;
+  end_timestamp: number | null;
+  duration: number | null;
+  recording_url: string | null;
+  transcript: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface ConversationsPageProps {
   params: Promise<{ locale: string }>;
@@ -29,9 +49,9 @@ interface ConversationsPageProps {
 
 export default function ConversationsPage({ params }: ConversationsPageProps) {
   const [locale, setLocale] = useState<string>("zh");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<CallRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<CallRecord | null>(null);
 
   const t = useTranslations("conversations");
   const tCommon = useTranslations("common");
@@ -58,9 +78,9 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
     fetchConversations();
   }, []);
 
-  const handleDeleteConversation = async (conversationId: string) => {
+  const handleDeleteConversation = async (callId: string) => {
     try {
-      const res = await fetch(`/api/conversations/${conversationId}`, {
+      const res = await apiFetch(`/api/conversations/${callId}`, {
         method: "DELETE",
       });
       
@@ -70,6 +90,7 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
       }
       
       toast.success(tCommon("success"));
+      setSelectedConversation(null);
       fetchConversations();
     } catch (error) {
       console.error("Error deleting conversation:", error);
@@ -77,7 +98,7 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
     }
   };
 
-  const formatDuration = (ms?: number) => {
+  const formatDuration = (ms?: number | null) => {
     if (!ms) return "N/A";
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -85,19 +106,9 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const formatDate = (timestamp?: number) => {
+  const formatDate = (timestamp?: number | null) => {
     if (!timestamp) return "N/A";
     return new Date(timestamp).toLocaleString();
-  };
-
-  const getSentimentBadge = (sentiment?: string) => {
-    if (!sentiment) return null;
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      positive: "default",
-      neutral: "secondary",
-      negative: "destructive",
-    };
-    return <Badge variant={variants[sentiment] || "outline"}>{t(sentiment)}</Badge>;
   };
 
   return (
@@ -136,26 +147,40 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
                   <div className="space-y-3">
                     {conversations.map((conversation) => (
                       <div
-                        key={conversation.conversation_id}
+                        key={conversation.call_id}
                         className={`rounded-lg border p-4 cursor-pointer transition-colors ${
-                          selectedConversation?.conversation_id === conversation.conversation_id
+                          selectedConversation?.call_id === conversation.call_id
                             ? "border-primary bg-muted"
                             : "hover:bg-muted"
                         }`}
                         onClick={() => setSelectedConversation(conversation)}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <p className="font-medium">{conversation.conversation_id}</p>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {formatDate(conversation.started_at)}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {conversation.agent_id && (
-                                <Badge variant="outline">{conversation.agent_id}</Badge>
-                              )}
-                              {getSentimentBadge(conversation.sentiment)}
+                          <div className="flex items-start gap-3">
+                            {conversation.call_type === "phone_call" ? (
+                              <Phone className="h-5 w-5 text-muted-foreground mt-1" />
+                            ) : (
+                              <Video className="h-5 w-5 text-muted-foreground mt-1" />
+                            )}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm">{conversation.call_id.slice(0, 20)}...</p>
+                                <Badge variant="outline" className="text-xs">
+                                  {conversation.call_type === "phone_call" ? t("phone") : t("web")}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {formatDate(conversation.start_timestamp)}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>{t("duration")}: {formatDuration(conversation.duration)}</span>
+                                {conversation.agent_id && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Agent: {conversation.agent_id.slice(0, 15)}...
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <AlertDialog>
@@ -178,9 +203,7 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() =>
-                                    handleDeleteConversation(conversation.conversation_id)
-                                  }
+                                  onClick={() => handleDeleteConversation(conversation.call_id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                   {tCommon("delete")}
@@ -189,9 +212,9 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
-                        {conversation.call_analysis?.call_summary && (
-                          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                            {conversation.call_analysis.call_summary}
+                        {conversation.from_number && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {t("from")}: {conversation.from_number} → {t("to")}: {conversation.to_number}
                           </p>
                         )}
                       </div>
@@ -215,32 +238,56 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
                     <div className="rounded-lg border p-3">
                       <p className="text-sm text-muted-foreground">{t("duration")}</p>
                       <p className="font-medium">
-                        {formatDuration(selectedConversation.duration_ms)}
+                        {formatDuration(selectedConversation.duration)}
                       </p>
                     </div>
                     <div className="rounded-lg border p-3">
-                      <p className="text-sm text-muted-foreground">{t("sentiment")}</p>
+                      <p className="text-sm text-muted-foreground">{t("type")}</p>
                       <p className="font-medium">
-                        {getSentimentBadge(selectedConversation.sentiment) || "N/A"}
+                        {selectedConversation.call_type === "phone_call" ? t("phone") : t("web")}
                       </p>
                     </div>
                   </div>
 
-                  {selectedConversation.call_analysis?.call_summary && (
+                  <div className="rounded-lg border p-3">
+                    <p className="text-sm text-muted-foreground mb-2">{t("callInfo")}</p>
+                    <div className="space-y-2 text-sm">
+                      {selectedConversation.from_number && (
+                        <p><strong>{t("from")}:</strong> {selectedConversation.from_number}</p>
+                      )}
+                      {selectedConversation.to_number && (
+                        <p><strong>{t("to")}:</strong> {selectedConversation.to_number}</p>
+                      )}
+                      {selectedConversation.agent_id && (
+                        <p><strong>Agent:</strong> {selectedConversation.agent_id}</p>
+                      )}
+                      <p><strong>{t("startTime")}:</strong> {formatDate(selectedConversation.start_timestamp)}</p>
+                      <p><strong>{t("endTime")}:</strong> {formatDate(selectedConversation.end_timestamp)}</p>
+                    </div>
+                  </div>
+
+                  {selectedConversation.recording_url && (
                     <div className="rounded-lg border p-3">
-                      <p className="text-sm text-muted-foreground mb-2">{t("summary")}</p>
-                      <p className="text-sm">{selectedConversation.call_analysis.call_summary}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{t("recording")}</p>
+                      <a 
+                        href={selectedConversation.recording_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        {t("playRecording")}
+                      </a>
                     </div>
                   )}
 
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">{t("transcript")}</p>
-                    <ScrollArea className="h-[400px] rounded-lg border p-4">
-                      {selectedConversation.transcript && selectedConversation.transcript.length > 0 ? (
+                    <ScrollArea className="h-[300px] rounded-lg border p-4">
+                      {selectedConversation.transcript ? (
                         <div className="space-y-3">
-                          {selectedConversation.transcript.map((segment, index) => (
-                            <TranscriptMessage key={index} segment={segment} />
-                          ))}
+                          {/* Display transcript as plain text since we don't have segment info */}
+                          <p className="text-sm whitespace-pre-wrap">{selectedConversation.transcript}</p>
                         </div>
                       ) : (
                         <p className="text-muted-foreground">{t("noTranscript")}</p>
@@ -259,30 +306,5 @@ export default function ConversationsPage({ params }: ConversationsPageProps) {
         </div>
       </div>
     </DashboardLayout>
-  );
-}
-
-// Transcript Message Component
-function TranscriptMessage({ segment }: { segment: TranscriptSegment }) {
-  const isAgent = segment.role === "agent";
-  
-  return (
-    <div className={`flex gap-3 ${isAgent ? "flex-row" : "flex-row-reverse"}`}>
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-          isAgent ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-        }`}
-      >
-        {isAgent ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-      </div>
-      <div className={`flex-1 ${isAgent ? "text-left" : "text-right"}`}>
-        <div className={`inline-block rounded-lg p-3 ${isAgent ? "bg-muted" : "bg-primary text-primary-foreground"}`}>
-          <p className="text-sm">{segment.content}</p>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {new Date(segment.timestamp_ms).toLocaleTimeString()}
-        </p>
-      </div>
-    </div>
   );
 }

@@ -1,44 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRetellClient } from '@/lib/retell-client';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { withAuth, ok, Err } from '@/lib/api-helpers';
 
 // GET /api/conversations/[id] - Get a specific conversation
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(async (request: NextRequest, ctx, params) => {
+  const callId = params?.id;
+  if (!callId) return Err.badRequest('Missing conversation ID');
+  
+  const client = getSupabaseClient();
+
   try {
-    const { id } = await params;
-    
-    const retellClient = getRetellClient();
-    const result = await retellClient.getConversation(id);
-    
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error('Error getting conversation:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get conversation' },
-      { status: 500 }
-    );
+    const { data: conversation, error } = await client
+      .from('user_calls')
+      .select('*')
+      .eq('call_id', callId)
+      .single();
+
+    if (error) {
+      console.error('[Conversations] Get error:', error);
+      return Err.notFound('Conversation not found');
+    }
+
+    return ok(conversation);
+  } catch (err) {
+    console.error('[Conversations] Unexpected error:', err);
+    return Err.internal();
   }
-}
+});
 
 // DELETE /api/conversations/[id] - Delete a conversation
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (request: NextRequest, ctx, params) => {
+  const callId = params?.id;
+  if (!callId) return Err.badRequest('Missing conversation ID');
+  
+  const client = getSupabaseClient();
+
   try {
-    const { id } = await params;
-    
-    const retellClient = getRetellClient();
-    await retellClient.deleteConversation(id);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting conversation:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete conversation' },
-      { status: 500 }
-    );
+    const { error } = await client
+      .from('user_calls')
+      .delete()
+      .eq('call_id', callId);
+
+    if (error) {
+      console.error('[Conversations] Delete error:', error);
+      return Err.internal();
+    }
+
+    return ok({ success: true });
+  } catch (err) {
+    console.error('[Conversations] Unexpected error:', err);
+    return Err.internal();
   }
-}
+});
