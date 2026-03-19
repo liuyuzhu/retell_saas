@@ -184,10 +184,9 @@ export default function UsersPage({ params }: UsersPageProps) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+      const res = await apiFetch(`/api/admin/users/${selectedUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
         body: JSON.stringify({
           name: formData.name,
           phone: formData.phone,
@@ -217,9 +216,8 @@ export default function UsersPage({ params }: UsersPageProps) {
 
   const handleDelete = async (userId: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await apiFetch(`/api/admin/users/${userId}`, {
         method: "DELETE",
-        credentials: 'include',
       });
 
       const data = await res.json();

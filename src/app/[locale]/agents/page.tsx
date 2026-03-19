@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { apiFetch } from "@/lib/api-fetch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -92,7 +93,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const fetchAgents = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/agents");
+      const res = await apiFetch("/api/agents");
       const data = await res.json();
       setAgents(data.data || []);
     } catch (error) {
@@ -106,7 +107,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
   const fetchVoices = async () => {
     setVoicesLoading(true);
     try {
-      const res = await fetch("/api/voices");
+      const res = await apiFetch("/api/voices");
       const data = await res.json();
       setVoices(data.data || []);
     } catch (error) {
@@ -163,7 +164,7 @@ export default function AgentsPage({ params }: AgentsPageProps) {
         }
       };
 
-      const res = await fetch("/api/agents", {
+      const res = await apiFetch("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
